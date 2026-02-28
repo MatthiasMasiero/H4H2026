@@ -1,30 +1,25 @@
-import React from "react";
-import "./App.css";
+import Nav from './components/Nav'
+import Hero from './components/Hero'
+import Process from "./components/Process";
+import TechMarquee from "./components/TechMarquee";
+import PrivacyStatement from "./components/PrivacyStatement";
+import Architecture from "./components/Architecture";
+import LaunchCta from "./components/LaunchCta";
+import Footer from "./components/Footer";
 
-const App: React.FC = () => {
+import './App.css'
+
+export default function App() {
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>QuantumDx</h1>
-        <p>
-          A tool for doctors and patients to securely identify and diagnos potential rare diseases.
-        </p>
-      </header>
-
-      <main className="app-main">
-        <section className="input-section">
-          <h2>Patient Symptoms</h2>
-          {/* TODO: Add Patient Data input here */}
-        </section>
-      </main>
-
-      <footer className="app-footer">
-        <p>
-          QuantumDx is an early prototype. Not for clinical use.
-        </p>
-      </footer>
-    </div>
+    <>
+      <Nav />
+      <Hero />
+      <TechMarquee />
+      <Process />
+      <PrivacyStatement />
+      <Architecture />
+      <LaunchCta />
+      <Footer />
+    </>
   );
-};
-
-export default App;
+}
