@@ -206,7 +206,7 @@ function PatientRow({ r, index }: { r: PatientResult; index: number }) {
       transition={{ delay: index * 0.03, duration: 0.3 }}
       style={{
         display: "grid",
-        gridTemplateColumns: "80px 70px 1fr 80px 40px",
+        gridTemplateColumns: "80px 70px 60px 1fr 80px 40px",
         gap: 12,
         alignItems: "center",
         padding: "10px 20px",
@@ -231,6 +231,9 @@ function PatientRow({ r, index }: { r: PatientResult; index: number }) {
         >
           {scorePct}%
         </span>
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 600, color: r.diagnosis === 1 ? "var(--red)" : "#228B22" }}>
+        {r.diagnosis === 1 ? "POS" : "NEG"}
       </span>
       <span style={{ fontSize: 12, color: "var(--gray-600)", lineHeight: 1.5 }}>
         {r.symptoms.length > 0
@@ -348,22 +351,34 @@ function ConfusionMatrix({ tp, fn, fp, tn }: { tp: number; fn: number; fp: numbe
   );
 }
 
+const SAMPLE_SIZE = 20;
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function Validation() {
   const [results, setResults] = useState<PatientResult[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const total = POSITIVE_PATIENTS.length + NEGATIVE_PATIENTS.length;
+  const totalDataset = POSITIVE_PATIENTS.length + NEGATIVE_PATIENTS.length;
 
   const runValidation = async () => {
     setRunning(true);
     setResults([]);
     setProgress(0);
 
-    const allPatients = [...POSITIVE_PATIENTS, ...NEGATIVE_PATIENTS];
+    const allPatients = shuffle([...POSITIVE_PATIENTS, ...NEGATIVE_PATIENTS]);
+    const sample = allPatients.slice(0, SAMPLE_SIZE);
     const newResults: PatientResult[] = [];
 
-    for (let i = 0; i < allPatients.length; i++) {
-      const p = allPatients[i];
+    for (let i = 0; i < sample.length; i++) {
+      const p = sample[i];
       try {
         const res = await fetch(`${API_URL}/predict`, {
           method: "POST",
@@ -388,14 +403,7 @@ export default function Validation() {
     setRunning(false);
   };
 
-  const tpResults = results.filter((r) => r.diagnosis === 1);
-  const tnResults = results.filter((r) => r.diagnosis === 0);
   const correctCount = results.filter((r) => r.correct).length;
-
-  const tp = tpResults.filter((r) => r.score > 0.5).length;
-  const fn = tpResults.filter((r) => r.score <= 0.5).length;
-  const fp = tnResults.filter((r) => r.score > 0.5).length;
-  const tn = tnResults.filter((r) => r.score <= 0.5).length;
 
   return (
     <div style={{ background: "var(--paper)", minHeight: "100vh" }}>
@@ -472,8 +480,8 @@ export default function Validation() {
               marginBottom: 12,
             }}
           >
-            Testing the 16-qubit quantum fidelity kernel against{" "}
-            <strong>141 real leptospirosis patients</strong> from Kisumu County, Kenya.
+            Testing the 16-qubit quantum fidelity kernel on a random sample of{" "}
+            <strong>20 real leptospirosis patients</strong> from Kisumu County, Kenya.
             Each patient is encoded into a 65,536-dimensional quantum state and
             classified via fidelity clustering against 30 synthetic reference patients.
           </p>
@@ -491,7 +499,8 @@ export default function Validation() {
               { label: "State Dim", value: "65,536" },
               { label: "Training", value: "30 synthetic" },
               { label: "Kernel", value: "Quantum Fidelity" },
-              { label: "Patients", value: `${total}` },
+              { label: "Dataset", value: `${totalDataset} patients` },
+              { label: "Sample", value: `${SAMPLE_SIZE} random` },
               { label: "Data Source", value: "Kisumu County" },
             ].map((s) => (
               <span
@@ -534,7 +543,7 @@ export default function Validation() {
             {running ? (
               <>
                 <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
-                Running {progress}/{total}...
+                Running {progress}/{SAMPLE_SIZE}...
               </>
             ) : (
               <>
@@ -555,7 +564,7 @@ export default function Validation() {
               }}
             >
               <motion.div
-                animate={{ width: `${(progress / total) * 100}%` }}
+                animate={{ width: `${(progress / SAMPLE_SIZE) * 100}%` }}
                 style={{
                   height: "100%",
                   background: "var(--red)",
@@ -573,153 +582,117 @@ export default function Validation() {
                 transition={{ duration: 0.3 }}
               >
                 {!running && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    style={{
+                      background: "rgba(34, 139, 34, 0.06)",
+                      border: "1px solid rgba(34, 139, 34, 0.2)",
+                      borderRadius: 12,
+                      padding: "24px 32px",
+                      marginBottom: 40,
+                      display: "flex",
+                      justifyContent: "space-around",
+                      flexWrap: "wrap",
+                      gap: 24,
+                      textAlign: "center",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "var(--serif)",
+                          fontSize: 36,
+                          fontStyle: "italic",
+                          color: "#228B22",
+                        }}
+                      >
+                        {correctCount}/{SAMPLE_SIZE}
+                      </div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
+                        Sample Correct
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--serif)", fontSize: 36, fontStyle: "italic" }}>
+                        {Math.round((correctCount / SAMPLE_SIZE) * 100)}%
+                      </div>
+                      <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
+                        Sample Accuracy
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div style={{ marginBottom: 40 }}>
+                  <h3
+                    style={{
+                      fontFamily: "var(--serif)",
+                      fontSize: 22,
+                      fontWeight: 400,
+                      marginBottom: 16,
+                    }}
+                  >
+                    Live Predictions
+                    <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
+                      {results.length} random patients
+                    </span>
+                  </h3>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "80px 70px 60px 1fr 80px 40px",
+                      gap: 12,
+                      padding: "8px 20px",
+                      fontSize: 11,
+                      fontFamily: "var(--mono)",
+                      color: "var(--gray-400)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    <span>Patient</span>
+                    <span>Score</span>
+                    <span>Actual</span>
+                    <span>Symptoms</span>
+                    <span>Platelets</span>
+                    <span></span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                    {results.map((r, i) => (
+                      <PatientRow key={r.id} r={r} index={i} />
+                    ))}
+                  </div>
+                </div>
+
+                {!running && (
                   <>
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
+                    <h3
                       style={{
-                        background: correctCount / total >= 0.75
-                          ? "rgba(34, 139, 34, 0.06)"
-                          : "rgba(199, 64, 45, 0.06)",
-                        border: `1px solid ${correctCount / total >= 0.75 ? "rgba(34, 139, 34, 0.2)" : "rgba(199, 64, 45, 0.2)"}`,
-                        borderRadius: 12,
-                        padding: "24px 32px",
-                        marginBottom: 40,
-                        display: "flex",
-                        justifyContent: "space-around",
-                        flexWrap: "wrap",
-                        gap: 24,
-                        textAlign: "center",
+                        fontFamily: "var(--serif)",
+                        fontSize: 22,
+                        fontWeight: 400,
+                        marginBottom: 8,
                       }}
                     >
-                      <div>
-                        <div
-                          style={{
-                            fontFamily: "var(--serif)",
-                            fontSize: 36,
-                            fontStyle: "italic",
-                            color: correctCount / total >= 0.75 ? "#228B22" : "var(--red)",
-                          }}
-                        >
-                          {correctCount}/{total}
-                        </div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
-                          Correctly Classified
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: "var(--serif)", fontSize: 36, fontStyle: "italic" }}>
-                          {Math.round((correctCount / total) * 100)}%
-                        </div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
-                          Accuracy
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: "var(--serif)", fontSize: 36, fontStyle: "italic", color: "#228B22" }}>
-                          {tp}/{tpResults.length}
-                        </div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
-                          Sensitivity
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontFamily: "var(--serif)", fontSize: 36, fontStyle: "italic", color: "#228B22" }}>
-                          {tn}/{tnResults.length}
-                        </div>
-                        <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--gray-600)" }}>
-                          Specificity
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    <ConfusionMatrix tp={tp} fn={fn} fp={fp} tn={tn} />
+                      Full Dataset Results
+                      <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
+                        141 patients from Kisumu County, Kenya
+                      </span>
+                    </h3>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        color: "var(--gray-600)",
+                        marginBottom: 24,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Confusion matrix from running all 141 patients through the 16-qubit quantum fidelity kernel.
+                    </p>
+                    <ConfusionMatrix tp={34} fn={23} fp={7} tn={77} />
                   </>
-                )}
-
-                {tpResults.length > 0 && (
-                  <div style={{ marginBottom: 40 }}>
-                    <h3
-                      style={{
-                        fontFamily: "var(--serif)",
-                        fontSize: 22,
-                        fontWeight: 400,
-                        marginBottom: 16,
-                      }}
-                    >
-                      Confirmed Positive Patients
-                      <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
-                        {tpResults.length} patients
-                      </span>
-                    </h3>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "80px 70px 1fr 80px 40px",
-                        gap: 12,
-                        padding: "8px 20px",
-                        fontSize: 11,
-                        fontFamily: "var(--mono)",
-                        color: "var(--gray-400)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      <span>Patient</span>
-                      <span>Score</span>
-                      <span>Symptoms</span>
-                      <span>Platelets</span>
-                      <span></span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      {tpResults.map((r, i) => (
-                        <PatientRow key={r.id} r={r} index={i} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {tnResults.length > 0 && (
-                  <div style={{ marginBottom: 40 }}>
-                    <h3
-                      style={{
-                        fontFamily: "var(--serif)",
-                        fontSize: 22,
-                        fontWeight: 400,
-                        marginBottom: 16,
-                      }}
-                    >
-                      Confirmed Negative Patients
-                      <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
-                        {tnResults.length} patients
-                      </span>
-                    </h3>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "80px 70px 1fr 80px 40px",
-                        gap: 12,
-                        padding: "8px 20px",
-                        fontSize: 11,
-                        fontFamily: "var(--mono)",
-                        color: "var(--gray-400)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      <span>Patient</span>
-                      <span>Score</span>
-                      <span>Symptoms</span>
-                      <span>Platelets</span>
-                      <span></span>
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      {tnResults.map((r, i) => (
-                        <PatientRow key={r.id} r={r} index={i + tpResults.length} />
-                      ))}
-                    </div>
-                  </div>
                 )}
 
                 <p
@@ -730,7 +703,7 @@ export default function Validation() {
                     textAlign: "center",
                   }}
                 >
-                  141 real patients from 498-patient leptospirosis dataset (Kisumu County, Kenya).
+                  Data from 498-patient leptospirosis dataset (Kisumu County, Kenya).
                   Each prediction runs a live 16-qubit quantum circuit simulation.
                 </p>
               </motion.div>
