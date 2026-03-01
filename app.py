@@ -152,7 +152,7 @@ if not os.path.exists(DATA_PATH) and not st.session_state["data_shredded"]:
 REQUIRED_COLS = {
     "patient_id", "heart_rate", "bp_systolic", "bp_diastolic",
     "age", "sex", "wbc", "platelets",
-    "fatigue", "muscle_weakness", "weight_loss", "seizures", "dev_delay",
+    "fever", "muscle_pain", "jaundice", "vomiting", "confusion",
     "headache", "chills", "rigors", "nausea", "diarrhoea", "cough",
     "bleeding", "prostration", "oliguria", "anuria",
     "conjunctival_suffusion", "muscle_tenderness",
@@ -211,11 +211,11 @@ with col1:
                     "sex": str(row.get("sex", "M")),
                     "wbc": float(row.get("wbc", 7000)),
                     "platelets": float(row.get("platelets", 250000)),
-                    "fatigue": bool(int(row.get("fatigue", 0))),
-                    "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
-                    "weight_loss": bool(int(row.get("weight_loss", 0))),
-                    "seizures": bool(int(row.get("seizures", 0))),
-                    "dev_delay": bool(int(row.get("dev_delay", 0))),
+                    "fever": bool(int(row.get("fever", 0))),
+                    "muscle_pain": bool(int(row.get("muscle_pain", 0))),
+                    "jaundice": bool(int(row.get("jaundice", 0))),
+                    "vomiting": bool(int(row.get("vomiting", 0))),
+                    "confusion": bool(int(row.get("confusion", 0))),
                     "headache": bool(int(row.get("headache", 0))),
                     "chills": bool(int(row.get("chills", 0))),
                     "rigors": bool(int(row.get("rigors", 0))),
@@ -370,11 +370,11 @@ def _randomize_patient():
     st.session_state["rp_bp_dia"] = float(random.randint(40, 120))
     st.session_state["rp_wbc"] = float(random.randint(2000, 30000))
     st.session_state["rp_platelets"] = float(random.randint(10000, 500000))
-    st.session_state["rp_fatigue"] = random.random() < 0.3
-    st.session_state["rp_muscle_weak"] = random.random() < 0.3
-    st.session_state["rp_weight_loss"] = random.random() < 0.2
-    st.session_state["rp_seizures"] = random.random() < 0.05
-    st.session_state["rp_dev_delay"] = random.random() < 0.05
+    st.session_state["rp_fever"] = random.random() < 0.3
+    st.session_state["rp_muscle_pain"] = random.random() < 0.3
+    st.session_state["rp_jaundice"] = random.random() < 0.2
+    st.session_state["rp_vomiting"] = random.random() < 0.05
+    st.session_state["rp_confusion"] = random.random() < 0.05
     st.session_state["rp_headache"] = random.random() < 0.4
     st.session_state["rp_chills"] = random.random() < 0.4
     st.session_state["rp_rigors"] = random.random() < 0.3
@@ -432,11 +432,11 @@ with st.form("new_patient_form"):
     st.markdown("**Clinical Symptoms**")
     sym_row1 = st.columns(5)
     with sym_row1[0]:
-        inp_fatigue = st.checkbox("Jaundice/Fever", value=st.session_state.get("rp_fatigue", False))
+        inp_fever = st.checkbox("Fever", value=st.session_state.get("rp_fever", False))
     with sym_row1[1]:
-        inp_muscle_weak = st.checkbox("Muscle Pain", value=st.session_state.get("rp_muscle_weak", False))
+        inp_muscle_pain = st.checkbox("Muscle Pain", value=st.session_state.get("rp_muscle_pain", False))
     with sym_row1[2]:
-        inp_weight_loss = st.checkbox("Vomiting", value=st.session_state.get("rp_weight_loss", False))
+        inp_jaundice = st.checkbox("Jaundice", value=st.session_state.get("rp_jaundice", False))
     with sym_row1[3]:
         inp_headache = st.checkbox("Headache", value=st.session_state.get("rp_headache", False))
     with sym_row1[4]:
@@ -468,9 +468,9 @@ with st.form("new_patient_form"):
 
     sym_row4 = st.columns(5)
     with sym_row4[0]:
-        inp_seizures = st.checkbox("Seizures", value=st.session_state.get("rp_seizures", False))
+        inp_vomiting = st.checkbox("Vomiting", value=st.session_state.get("rp_vomiting", False))
     with sym_row4[1]:
-        inp_dev_delay = st.checkbox("Dev. Delay", value=st.session_state.get("rp_dev_delay", False))
+        inp_confusion = st.checkbox("Confusion", value=st.session_state.get("rp_confusion", False))
 
     predict_clicked = st.form_submit_button("Predict Diagnosis", use_container_width=True, type="primary")
 
@@ -490,11 +490,11 @@ if predict_clicked:
             "sex": inp_sex,
             "wbc": inp_wbc,
             "platelets": inp_platelets,
-            "fatigue": inp_fatigue,
-            "muscle_weakness": inp_muscle_weak,
-            "weight_loss": inp_weight_loss,
-            "seizures": inp_seizures,
-            "dev_delay": inp_dev_delay,
+            "fever": inp_fever,
+            "muscle_pain": inp_muscle_pain,
+            "jaundice": inp_jaundice,
+            "vomiting": inp_vomiting,
+            "confusion": inp_confusion,
             "headache": inp_headache,
             "chills": inp_chills,
             "rigors": inp_rigors,
@@ -526,7 +526,7 @@ if predict_clicked:
             X_train = np.array([np.abs(signature_from_dict(s)) for s in sigs.values()])
             y_train = np.array(list(labs.values()))
 
-            model = SVC(kernel="linear", probability=True, C=1.0, random_state=42)
+            model = SVC(kernel="rbf", probability=True, C=10.0, gamma="scale", random_state=42)
             model.fit(X_train, y_train)
 
             proba = model.predict_proba(new_X)[0]
@@ -539,12 +539,12 @@ if predict_clicked:
 
         # Collect symptom flags for display
         symptoms = []
-        if inp_fatigue:
-            symptoms.append("Jaundice/Fever")
-        if inp_muscle_weak:
+        if inp_fever:
+            symptoms.append("Fever")
+        if inp_muscle_pain:
             symptoms.append("Muscle Pain")
-        if inp_weight_loss:
-            symptoms.append("Vomiting")
+        if inp_jaundice:
+            symptoms.append("Jaundice")
         if inp_headache:
             symptoms.append("Headache")
         if inp_chills:
@@ -569,10 +569,10 @@ if predict_clicked:
             symptoms.append("Conj. Suffusion")
         if inp_muscle_tend:
             symptoms.append("Muscle Tenderness")
-        if inp_seizures:
-            symptoms.append("Seizures")
-        if inp_dev_delay:
-            symptoms.append("Dev. Delay")
+        if inp_vomiting:
+            symptoms.append("Vomiting")
+        if inp_confusion:
+            symptoms.append("Confusion")
 
         # Display results
         res_left, res_gauge, res_right = st.columns([1, 2, 1])

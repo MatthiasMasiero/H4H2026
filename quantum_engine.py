@@ -71,8 +71,8 @@ def condense_features(raw_dict) -> np.ndarray:
 
     Args:
         raw_dict: dict with keys: heart_rate, bp_systolic, bp_diastolic, age, sex,
-                  wbc, platelets, and 17 binary symptoms (fever/fatigue, muscle_weakness,
-                  weight_loss, seizures, dev_delay, headache, chills, rigors, nausea,
+                  wbc, platelets, and 17 binary symptoms (fever, jaundice,
+                  vomiting, confusion, muscle_pain, headache, chills, rigors, nausea,
                   diarrhoea, cough, bleeding, prostration, oliguria, anuria,
                   conjunctival_suffusion, muscle_tenderness).
                   Missing keys use sensible clinical defaults.
@@ -95,19 +95,18 @@ def condense_features(raw_dict) -> np.ndarray:
     def _bin(key):
         return 1.0 if raw_dict.get(key, False) else 0.0
 
-    jaundice     = _bin("fatigue")       # fatigue column maps to jaundice in lepto CSV
-    muscle_weak  = _bin("muscle_weakness")
+    jaundice     = _bin("jaundice")
+    muscle_pain  = _bin("muscle_pain")
     oliguria     = _bin("oliguria")
     anuria       = _bin("anuria")
-    fever        = _bin("fatigue")       # fever signal from fatigue column
+    fever        = _bin("fever")
     chills       = _bin("chills")
     rigors       = _bin("rigors")
     conj_suff    = _bin("conjunctival_suffusion")
     nausea       = _bin("nausea")
-    vomiting     = _bin("weight_loss")   # weight_loss column maps to vomiting
+    vomiting     = _bin("vomiting")
     diarrhoea    = _bin("diarrhoea")
     cough        = _bin("cough")
-    muscle_pain  = _bin("muscle_weakness")
     muscle_tend  = _bin("muscle_tenderness")
     prostration  = _bin("prostration")
     headache     = _bin("headache")

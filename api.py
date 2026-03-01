@@ -85,11 +85,11 @@ def _row_to_raw_dict(row) -> dict:
         "sex": str(row.get("sex", "M")),
         "wbc": float(row.get("wbc", 7000)),
         "platelets": float(row.get("platelets", 250000)),
-        "fatigue": bool(int(row.get("fatigue", 0))),
-        "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
-        "weight_loss": bool(int(row.get("weight_loss", 0))),
-        "seizures": bool(int(row.get("seizures", 0))),
-        "dev_delay": bool(int(row.get("dev_delay", 0))),
+        "fever": bool(int(row.get("fever", 0))),
+        "muscle_pain": bool(int(row.get("muscle_pain", 0))),
+        "jaundice": bool(int(row.get("jaundice", 0))),
+        "vomiting": bool(int(row.get("vomiting", 0))),
+        "confusion": bool(int(row.get("confusion", 0))),
         "headache": bool(int(row.get("headache", 0))),
         "chills": bool(int(row.get("chills", 0))),
         "rigors": bool(int(row.get("rigors", 0))),
@@ -126,7 +126,7 @@ def _load_state():
     if sigs and labs:
         X_train = np.array([np.abs(signature_from_dict(s)) for s in sigs.values()])
         y_train = np.array(list(labs.values()))
-        model = SVC(kernel="linear", probability=True, C=1.0, random_state=42)
+        model = SVC(kernel="rbf", probability=True, C=10.0, gamma="scale", random_state=42)
         model.fit(X_train, y_train)
         _state["model"] = model
 
@@ -193,11 +193,11 @@ class PatientInput(BaseModel):
     sex: Optional[str] = "M"
     wbc: float = 7000.0
     platelets: float = 250000.0
-    fatigue: bool = False
-    muscle_weakness: bool = False
-    weight_loss: bool = False
-    seizures: bool = False
-    developmental_delay: bool = False
+    fever: bool = False
+    muscle_pain: bool = False
+    jaundice: bool = False
+    vomiting: bool = False
+    confusion: bool = False
     headache: bool = False
     chills: bool = False
     rigors: bool = False
@@ -237,11 +237,11 @@ def _patient_to_raw_dict(patient: PatientInput) -> dict:
         "sex": patient.sex or "M",
         "wbc": patient.wbc,
         "platelets": patient.platelets,
-        "fatigue": patient.fatigue,
-        "muscle_weakness": patient.muscle_weakness,
-        "weight_loss": patient.weight_loss,
-        "seizures": patient.seizures,
-        "dev_delay": patient.developmental_delay,
+        "fever": patient.fever,
+        "muscle_pain": patient.muscle_pain,
+        "jaundice": patient.jaundice,
+        "vomiting": patient.vomiting,
+        "confusion": patient.confusion,
         "headache": patient.headache,
         "chills": patient.chills,
         "rigors": patient.rigors,

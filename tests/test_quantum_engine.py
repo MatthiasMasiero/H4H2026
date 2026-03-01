@@ -25,8 +25,8 @@ from quantum_engine import (
 HEALTHY_PATIENT = {
     "heart_rate": 72, "bp_systolic": 120, "bp_diastolic": 78,
     "age": 30, "sex": "M", "wbc": 7000, "platelets": 250000,
-    "fatigue": False, "muscle_weakness": False, "weight_loss": False,
-    "seizures": False, "dev_delay": False, "headache": False,
+    "fever": False, "muscle_pain": False, "jaundice": False,
+    "vomiting": False, "confusion": False, "headache": False,
     "chills": False, "rigors": False, "nausea": False,
     "diarrhoea": False, "cough": False, "bleeding": False,
     "prostration": False, "oliguria": False, "anuria": False,
@@ -36,8 +36,8 @@ HEALTHY_PATIENT = {
 SICK_PATIENT = {
     "heart_rate": 110, "bp_systolic": 160, "bp_diastolic": 105,
     "age": 45, "sex": "F", "wbc": 25000, "platelets": 30000,
-    "fatigue": True, "muscle_weakness": True, "weight_loss": True,
-    "seizures": True, "dev_delay": True, "headache": True,
+    "fever": True, "muscle_pain": True, "jaundice": True,
+    "vomiting": True, "confusion": True, "headache": True,
     "chills": True, "rigors": True, "nausea": True,
     "diarrhoea": True, "cough": True, "bleeding": True,
     "prostration": True, "oliguria": True, "anuria": True,

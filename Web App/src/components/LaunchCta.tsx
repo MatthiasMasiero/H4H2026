@@ -12,11 +12,11 @@ interface PatientData {
     diastolic_bp_mmHg: number;
     wbc: number;
     platelets: number;
-    fatigue: boolean;
-    muscle_weakness: boolean;
-    weight_loss: boolean;
-    seizures: boolean;
-    developmental_delay: boolean;
+    fever: boolean;
+    muscle_pain: boolean;
+    jaundice: boolean;
+    vomiting: boolean;
+    confusion: boolean;
     headache: boolean;
     chills: boolean;
     rigors: boolean;
@@ -47,11 +47,11 @@ const HEALTHY_PRESET: PatientData = {
     diastolic_bp_mmHg: 76,
     wbc: 7000,
     platelets: 250000,
-    fatigue: false,
-    muscle_weakness: false,
-    weight_loss: false,
-    seizures: false,
-    developmental_delay: false,
+    fever: false,
+    muscle_pain: false,
+    jaundice: false,
+    vomiting: false,
+    confusion: false,
     headache: false,
     chills: false,
     rigors: false,
@@ -74,11 +74,11 @@ const SICK_PRESET: PatientData = {
     diastolic_bp_mmHg: 105,
     wbc: 25000,
     platelets: 30000,
-    fatigue: true,
-    muscle_weakness: true,
-    weight_loss: true,
-    seizures: false,
-    developmental_delay: false,
+    fever: true,
+    muscle_pain: true,
+    jaundice: true,
+    vomiting: false,
+    confusion: false,
     headache: true,
     chills: true,
     rigors: true,
@@ -107,11 +107,11 @@ function generateRandomPatient(): PatientData {
         diastolic_bp_mmHg: randomBetween(40, 120),
         wbc: randomBetween(2000, 30000),
         platelets: randomBetween(10000, 500000),
-        fatigue: Math.random() < 0.3,
-        muscle_weakness: Math.random() < 0.3,
-        weight_loss: Math.random() < 0.2,
-        seizures: Math.random() < 0.05,
-        developmental_delay: Math.random() < 0.05,
+        fever: Math.random() < 0.3,
+        muscle_pain: Math.random() < 0.3,
+        jaundice: Math.random() < 0.2,
+        vomiting: Math.random() < 0.05,
+        confusion: Math.random() < 0.05,
         headache: Math.random() < 0.4,
         chills: Math.random() < 0.4,
         rigors: Math.random() < 0.3,
@@ -136,11 +136,11 @@ function PatientForm() {
         diastolic_bp_mmHg: 0,
         wbc: 0,
         platelets: 0,
-        fatigue: false,
-        muscle_weakness: false,
-        weight_loss: false,
-        seizures: false,
-        developmental_delay: false,
+        fever: false,
+        muscle_pain: false,
+        jaundice: false,
+        vomiting: false,
+        confusion: false,
         headache: false,
         chills: false,
         rigors: false,
@@ -195,11 +195,11 @@ function PatientForm() {
                     sex: form.sex === "male" ? "M" : form.sex === "female" ? "F" : undefined,
                     wbc: form.wbc,
                     platelets: form.platelets,
-                    fatigue: form.fatigue,
-                    muscle_weakness: form.muscle_weakness,
-                    weight_loss: form.weight_loss,
-                    seizures: form.seizures,
-                    developmental_delay: form.developmental_delay,
+                    fever: form.fever,
+                    muscle_pain: form.muscle_pain,
+                    jaundice: form.jaundice,
+                    vomiting: form.vomiting,
+                    confusion: form.confusion,
                     headache: form.headache,
                     chills: form.chills,
                     rigors: form.rigors,
@@ -381,9 +381,11 @@ function PatientForm() {
                                 Symptoms
                             </label>
                         {([
-                            { name: "fatigue", label: "Jaundice/Fever" },
-                            { name: "muscle_weakness", label: "Muscle Pain" },
-                            { name: "weight_loss", label: "Vomiting" },
+                            { name: "fever", label: "Fever" },
+                            { name: "muscle_pain", label: "Muscle Pain" },
+                            { name: "jaundice", label: "Jaundice" },
+                            { name: "vomiting", label: "Vomiting" },
+                            { name: "confusion", label: "Confusion" },
                             { name: "headache", label: "Headache" },
                             { name: "chills", label: "Chills" },
                             { name: "rigors", label: "Rigors" },
@@ -396,8 +398,6 @@ function PatientForm() {
                             { name: "anuria", label: "Anuria" },
                             { name: "conjunctival_suffusion", label: "Conj. Suffusion" },
                             { name: "muscle_tenderness", label: "Muscle Tenderness" },
-                            { name: "seizures", label: "Seizures" },
-                            { name: "developmental_delay", label: "Dev. Delay" },
                         ] as { name: keyof PatientData; label: string }[]).map((field) => (
                             <label
                                 key={field.name}
