@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, FlaskConical, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -363,6 +363,11 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export default function Validation() {
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [results, setResults] = useState<PatientResult[]>([]);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -520,12 +525,18 @@ export default function Validation() {
             ))}
           </div>
 
+          <div style={{
+            borderBottom: "1px solid var(--gray-200)",
+            padding: "0px",
+          }} />
+
           <h3
             style={{
               fontFamily: "var(--serif)",
               fontSize: 22,
               fontWeight: 400,
               marginBottom: 8,
+              marginTop: 40
             }}
           >
             Full Dataset Results
@@ -545,6 +556,23 @@ export default function Validation() {
           </p>
           <ConfusionMatrix tp={34} fn={23} fp={7} tn={77} />
 
+          <div style={{
+            borderBottom: "1px solid var(--gray-200)",
+            padding: "0px",
+          }} />
+
+          <h3
+            style={{
+              fontFamily: "var(--serif)",
+              fontSize: 22,
+              fontWeight: 400,
+              marginBottom: 8,
+              marginTop: 40
+            }}
+          >
+            Test on random sample of patients:
+          </h3>
+
           <button
             onClick={runValidation}
             disabled={running}
@@ -563,6 +591,7 @@ export default function Validation() {
               cursor: running ? "not-allowed" : "pointer",
               transition: "background 0.2s ease",
               marginBottom: 16,
+              marginTop: 40
             }}
           >
             {running ? (
