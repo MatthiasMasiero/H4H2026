@@ -30,6 +30,69 @@ interface PredictionResult {
     quantum_signature_dim: number;
 }
 
+const HEALTHY_PRESET: PatientData = {
+    age_years: 28,
+    sex: "male",
+    height_cm: 175,
+    weight_kg: 72,
+    bmi: 23.5,
+    heart_rate_bpm: 68,
+    temperature_c: 36.8,
+    systolic_bp_mmHg: 118,
+    diastolic_bp_mmHg: 76,
+    oxygen_saturation_pct: 98,
+    fatigue: false,
+    weight_loss: false,
+    seizures: false,
+    developmental_delay: false,
+    muscle_weak: false,
+};
+
+const SICK_PRESET: PatientData = {
+    age_years: 52,
+    sex: "female",
+    height_cm: 160,
+    weight_kg: 51,
+    bmi: 19.9,
+    heart_rate_bpm: 115,
+    temperature_c: 39.2,
+    systolic_bp_mmHg: 165,
+    diastolic_bp_mmHg: 108,
+    oxygen_saturation_pct: 89,
+    fatigue: true,
+    weight_loss: true,
+    seizures: true,
+    developmental_delay: true,
+    muscle_weak: true,
+};
+
+function randomBetween(min: number, max: number, decimals = 0): number {
+    const val = Math.random() * (max - min) + min;
+    return Number(val.toFixed(decimals));
+}
+
+function generateRandomPatient(): PatientData {
+    const height = randomBetween(50, 195);
+    const weight = randomBetween(8, 120, 1);
+    return {
+        age_years: randomBetween(1, 80),
+        sex: Math.random() > 0.5 ? "male" : "female",
+        height_cm: height,
+        weight_kg: weight,
+        bmi: Number((weight / (height / 100) ** 2).toFixed(1)),
+        heart_rate_bpm: randomBetween(50, 135),
+        temperature_c: randomBetween(355, 395) / 10,
+        systolic_bp_mmHg: randomBetween(85, 185),
+        diastolic_bp_mmHg: randomBetween(40, 120),
+        oxygen_saturation_pct: randomBetween(860, 1000) / 10,
+        fatigue: Math.random() < 0.3,
+        weight_loss: Math.random() < 0.25,
+        seizures: Math.random() < 0.15,
+        developmental_delay: Math.random() < 0.1,
+        muscle_weak: Math.random() < 0.25,
+    };
+}
+
 function PatientForm() {
     const [form, setForm] = useState<PatientData>({
         age_years: 0,
@@ -150,6 +213,43 @@ function PatientForm() {
                     >
                         Patient Diagnosis
                     </h2>
+                    <div style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: 12,
+                        marginBottom: 28,
+                        flexWrap: "wrap",
+                    }}>
+                        {[
+                            { label: "Healthy Patient", preset: HEALTHY_PRESET, color: "#228B22" },
+                            { label: "Sick Patient", preset: SICK_PRESET, color: "var(--red)" },
+                            { label: "Random Patient", preset: null as PatientData | null, color: "var(--gray-600, #555)" },
+                        ].map((btn) => (
+                            <button
+                                key={btn.label}
+                                type="button"
+                                onClick={() => {
+                                    setForm(btn.preset ?? generateRandomPatient());
+                                    setResult(null);
+                                    setError(null);
+                                }}
+                                style={{
+                                    padding: "10px 20px",
+                                    fontSize: 14,
+                                    borderRadius: 8,
+                                    fontWeight: 600,
+                                    fontFamily: "var(--mono)",
+                                    background: "transparent",
+                                    color: btn.color,
+                                    border: `1.5px solid ${btn.color}`,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease",
+                                }}
+                            >
+                                {btn.label}
+                            </button>
+                        ))}
+                    </div>
                     <form
                         onSubmit={handleSubmit}
                         style={{
@@ -183,6 +283,7 @@ function PatientForm() {
                                     id={field.name}
                                     type="number"
                                     name={field.name}
+                                    value={(form as any)[field.name] || ""}
                                     onChange={handleChange}
                                     style={{
                                         padding: "12px 16px",
