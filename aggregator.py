@@ -37,7 +37,7 @@ class FederatedAggregator:
 
     # ── Registration ────────────────────────────────────────────────────────
 
-    def accept_weights(self, clinic_name, weight_vector, intercept, n_samples):
+    def accept_weights(self, clinic_name, weight_vector, intercept, n_samples) -> None:
         """
         Register a clinic's local SVM decision boundary.
 
@@ -53,7 +53,7 @@ class FederatedAggregator:
 
     # ── Aggregation ─────────────────────────────────────────────────────────
 
-    def compute_global_boundary(self):
+    def compute_global_boundary(self) -> tuple[np.ndarray, float]:
         """
         Compute the global decision boundary as a sample-weighted
         average of all registered clinic weight vectors.
@@ -82,7 +82,7 @@ class FederatedAggregator:
 
     # ── Summary ─────────────────────────────────────────────────────────────
 
-    def get_clinic_summary(self):
+    def get_clinic_summary(self) -> dict:
         """Return a dict summarizing each clinic's registration status."""
         return {
             name: {
@@ -95,7 +95,7 @@ class FederatedAggregator:
     # ── Local Training Helper ───────────────────────────────────────────────
 
     @staticmethod
-    def train_local_svm(features, labels):
+    def train_local_svm(features, labels) -> tuple[np.ndarray, float]:
         """
         Train a linear SVM on local quantum signature amplitudes.
 

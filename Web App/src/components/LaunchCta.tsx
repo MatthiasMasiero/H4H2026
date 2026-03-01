@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Reveal from "./Reveal";
 
-const API_URL = "https://h4h2026-production.up.railway.app";
+const API_URL = import.meta.env.VITE_API_URL || "https://h4h2026-production.up.railway.app";
 
 interface PatientData {
     age_years: number;
@@ -261,7 +261,7 @@ function PatientForm() {
                         }}
                     >
                         {/* Numeric inputs with labels */}
-                        {[
+                        {([
                             { name: "age_years", label: "Age (years)" },
                             { name: "height_cm", label: "Height (cm)" },
                             { name: "weight_kg", label: "Weight (kg)" },
@@ -271,7 +271,7 @@ function PatientForm() {
                             { name: "systolic_bp_mmHg", label: "Systolic BP (mmHg)" },
                             { name: "diastolic_bp_mmHg", label: "Diastolic BP (mmHg)" },
                             { name: "oxygen_saturation_pct", label: "Oxygen Saturation (%)" },
-                        ].map((field) => (
+                        ] as { name: keyof PatientData; label: string }[]).map((field) => (
                             <div key={field.name} style={{ display: "flex", flexDirection: "column", maxWidth: '35vw' }}>
                                 <label
                                     htmlFor={field.name}
@@ -283,7 +283,7 @@ function PatientForm() {
                                     id={field.name}
                                     type="number"
                                     name={field.name}
-                                    value={(form as any)[field.name] || ""}
+                                    value={form[field.name] as number || ""}
                                     onChange={handleChange}
                                     style={{
                                         padding: "12px 16px",
@@ -330,13 +330,13 @@ function PatientForm() {
                             >
                                 Symptoms
                             </label>
-                        {[
+                        {([
                             { name: "fatigue", label: "Fatigue" },
                             { name: "weight_loss", label: "Weight Loss" },
                             { name: "seizures", label: "Seizures" },
                             { name: "developmental_delay", label: "Developmental Delay" },
                             { name: "muscle_weak", label: "Muscle Weakness" },
-                        ].map((field) => (
+                        ] as { name: keyof PatientData; label: string }[]).map((field) => (
                             <label
                                 key={field.name}
                                 style={{
@@ -353,7 +353,7 @@ function PatientForm() {
                                 <input
                                     type="checkbox"
                                     name={field.name}
-                                    checked={(form as any)[field.name]}
+                                    checked={!!form[field.name]}
                                     onChange={handleChange}
                                     style={{ display: "none" }}
                                 />
@@ -363,13 +363,13 @@ function PatientForm() {
                                         height: 20,
                                         borderRadius: 6,
                                         border: "2px solid var(--gray-200)",
-                                        background: (form as any)[field.name] ? "var(--red)" : "white",
+                                        background: form[field.name] ? "var(--red)" : "white",
                                         display: "inline-block",
                                         transition: "all 0.2s ease",
                                         position: "relative",
                                     }}
                                 >
-                                    {(form as any)[field.name] && (
+                                    {form[field.name] && (
                                         <span
                                             style={{
                                                 position: "absolute",

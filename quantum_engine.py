@@ -8,7 +8,6 @@ computes quantum kernel matrices, and securely shreds raw data.
 import os
 import json
 import numpy as np
-import pandas as pd
 from qiskit.circuit.library import ZZFeatureMap
 from qiskit.quantum_info import Statevector
 
@@ -68,7 +67,7 @@ def _normalize_raw(value, feature_name):
     return np.clip((value - lo) / (hi - lo) * np.pi, 0.0, np.pi)
 
 
-def condense_features(raw_dict):
+def condense_features(raw_dict) -> np.ndarray:
     """
     Condense 14 raw patient features into 8 composite features for 8-qubit encoding.
 
@@ -119,7 +118,7 @@ def condense_features(raw_dict):
 
 # ── Normalization ───────────────────────────────────────────────────────────
 
-def normalize_features(raw):
+def normalize_features(raw) -> list[float]:
     """
     Clip condensed feature values to [0, pi].
     Accepts a single row (1-D) or a matrix (2-D).
@@ -131,7 +130,7 @@ def normalize_features(raw):
 
 # ── Quantum Signature ──────────────────────────────────────────────────────
 
-def get_quantum_signature(data_row):
+def get_quantum_signature(data_row) -> Statevector:
     """
     Encode patient features into a quantum state via ZZFeatureMap
     and return the full complex state vector (length 2^8 = 256).
@@ -209,7 +208,7 @@ def compute_kernel_from_params(param_matrix):
     return compute_kernel_from_signatures(sigs)
 
 
-def compute_kernel_from_signatures(signatures):
+def compute_kernel_from_signatures(signatures) -> np.ndarray:
     """
     Compute the fidelity kernel from pre-computed state vectors.
     Fidelity: F(psi, phi) = |<psi|phi>|^2
@@ -232,7 +231,7 @@ def compute_kernel_from_signatures(signatures):
 
 # ── Secure Shredding ───────────────────────────────────────────────────────
 
-def shred_data(filepath):
+def shred_data(filepath) -> None:
     """
     Securely delete a file with a 3-pass random overwrite
     (inspired by DoD 5220.22-M) before unlinking.
@@ -256,7 +255,7 @@ def shred_data(filepath):
 
 # ── Mock Data Generator ────────────────────────────────────────────────────
 
-def generate_mock_dataset(filepath="data/patients.csv", n_patients=30):
+def generate_mock_dataset(filepath="data/patients.csv", n_patients=30) -> "pd.DataFrame":
     """
     Create a synthetic 30-patient CSV with all 14 clinical features
     and a binary diagnosis label (0 = healthy, 1 = anomaly).
@@ -264,6 +263,8 @@ def generate_mock_dataset(filepath="data/patients.csv", n_patients=30):
     Healthy patients have normal vitals; anomalous patients show
     elevated heart rate / blood pressure, reduced SpO2, and more symptoms.
     """
+    import pandas as pd
+
     rng = np.random.default_rng(42)
     n_h = int(n_patients * 0.6)   # 18 healthy
     n_a = n_patients - n_h        # 12 anomaly
@@ -299,11 +300,11 @@ def generate_mock_dataset(filepath="data/patients.csv", n_patients=30):
 
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
 
-def signature_to_dict(sig):
+def signature_to_dict(sig) -> dict:
     """Convert a complex state vector to a JSON-serializable dict."""
     return {"re": np.real(sig).tolist(), "im": np.imag(sig).tolist()}
 
 
-def signature_from_dict(d):
+def signature_from_dict(d) -> Statevector:
     """Reconstruct a complex state vector from its dict representation."""
     return np.array(d["re"]) + 1j * np.array(d["im"])
