@@ -33,23 +33,12 @@ In rural Kenya, **leptospirosis** kills through misdiagnosis. Community health w
 
 ## How It Works
 
-```
-  Patient Symptoms              Quantum Encoding              Diagnosis
- ┌─────────────────┐      ┌──────────────────────┐      ┌────────────────┐
- │ 24 clinical      │      │  8-qubit ZZFeatureMap │      │ Compare against │
- │ features:        │─────>│  (linear entanglement,│─────>│ 30 synthetic    │
- │ fever, jaundice, │      │   depth=2)            │      │ reference states │
- │ vitals, labs...  │      │                       │      │                 │
- └─────────────────┘      │  256-dim statevector  │      │ Fidelity kernel │
-                           └──────────────────────┘      │ F = |<ψ|φ>|²   │
-                                     │                    └────────┬───────┘
-                                     │                             │
-                                     v                             v
-                           ┌──────────────────┐          ┌────────────────┐
-                           │  Raw data shredded │          │  anomaly_prob  │
-                           │  (DoD 5220.22-M    │          │  0% = healthy  │
-                           │   3-pass wipe)      │          │  100% = sick   │
-                           └──────────────────┘          └────────────────┘
+```mermaid
+flowchart LR
+    A["24 Clinical Features\nfever, jaundice, vitals, labs..."] --> B["8-Qubit ZZFeatureMap\nlinear entanglement, depth=2\n256-dim statevector"]
+    B --> C["Fidelity Kernel\nF = |⟨ψ|φ⟩|²\nvs 30 synthetic references"]
+    B --> D["Raw Data Shredded\nDoD 5220.22-M 3-pass wipe"]
+    C --> E["anomaly_prob\n0% = healthy → 100% = sick"]
 ```
 
 ### The Quantum Pipeline
