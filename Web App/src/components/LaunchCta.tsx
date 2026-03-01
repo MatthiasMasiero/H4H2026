@@ -101,7 +101,11 @@ function PatientForm() {
 
             if (!res.ok) {
                 const err = await res.json();
-                throw new Error(err.detail || "Prediction failed");
+                const detail = err.detail;
+                const message = Array.isArray(detail)
+                    ? detail.map((e: any) => e.msg).join(", ")
+                    : detail || "Prediction failed";
+                throw new Error(message);
             }
 
             const data: PredictionResult = await res.json();
