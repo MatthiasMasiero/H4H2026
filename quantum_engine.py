@@ -521,7 +521,7 @@ def signature_from_dict(d) -> Statevector:
 
 # ── Synthetic Bootstrap ────────────────────────────────────────────────────
 
-def bootstrap_svm_synthetic(n_healthy=10, n_sick=10, random_state=42):
+def bootstrap_svm_synthetic(n_healthy=15, n_sick=15, random_state=42):
     """
     Generate synthetic reference patients with clear class separation
     and train a quantum kernel SVM.
