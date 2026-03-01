@@ -1,5 +1,6 @@
 {
-  "buildCommand": "cd \"Web App\" && npm install && npm run build",
+  "installCommand": "cd \"Web App\" && npm install",
+  "buildCommand": "cd \"Web App\" && npm run build",
   "outputDirectory": "Web App/dist",
   "framework": "vite"
 }
