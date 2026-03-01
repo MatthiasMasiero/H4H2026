@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
+import { FlaskConical } from "lucide-react";
 import Reveal from "./Reveal";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://h4h2026-production.up.railway.app";
@@ -617,8 +619,8 @@ function PatientForm() {
                                     flexWrap: "wrap",
                                 }}>
                                     {[
-                                        { label: "Model", value: result.model_used === "federated_global_boundary" ? "Federated" : "Local SVM" },
-                                        { label: "Qubits", value: "8" },
+                                        { label: "Model", value: result.model_used === "quantum_kernel_svm_16q" ? "Quantum SVM" : result.model_used === "federated_global_boundary" ? "Federated" : "Risk Score" },
+                                        { label: "Qubits", value: "16" },
                                         { label: "State Dim", value: String(result.quantum_signature_dim) },
                                     ].map((item) => (
                                         <div
@@ -640,6 +642,30 @@ function PatientForm() {
                             </motion.div>
                         )}
                     </AnimatePresence>
+
+                    <div style={{ textAlign: "center", marginBottom: 20 }}>
+                        <Link
+                            to="/validation"
+                            style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "12px 24px",
+                                fontSize: 14,
+                                borderRadius: 8,
+                                fontWeight: 600,
+                                fontFamily: "var(--mono)",
+                                background: "transparent",
+                                color: "var(--gray-600)",
+                                border: "1.5px solid var(--gray-300)",
+                                textDecoration: "none",
+                                transition: "all 0.2s ease",
+                            }}
+                        >
+                            <FlaskConical size={16} />
+                            Test with Real Patients
+                        </Link>
+                    </div>
 
                     <p
                         style={{
