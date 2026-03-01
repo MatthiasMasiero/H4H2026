@@ -153,7 +153,7 @@ REQUIRED_COLS = {
     "patient_id", "heart_rate", "bp_systolic", "bp_diastolic",
     "age", "sex", "wbc", "platelets",
     "fever", "muscle_pain", "jaundice", "vomiting", "confusion",
-    "headache", "chills", "rigors", "nausea", "diarrhoea", "cough",
+    "headache", "chills", "rigors", "nausea", "diarrhea", "cough",
     "bleeding", "prostration", "oliguria", "anuria",
     "conjunctival_suffusion", "muscle_tenderness",
     "diagnosis",
@@ -220,7 +220,7 @@ with col1:
                     "chills": bool(int(row.get("chills", 0))),
                     "rigors": bool(int(row.get("rigors", 0))),
                     "nausea": bool(int(row.get("nausea", 0))),
-                    "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+                    "diarrhea": bool(int(row.get("diarrhea", 0))),
                     "cough": bool(int(row.get("cough", 0))),
                     "bleeding": bool(int(row.get("bleeding", 0))),
                     "prostration": bool(int(row.get("prostration", 0))),
@@ -380,7 +380,7 @@ def _randomize_patient():
     st.session_state["rp_chills"] = random.random() < 0.4
     st.session_state["rp_rigors"] = random.random() < 0.3
     st.session_state["rp_nausea"] = random.random() < 0.3
-    st.session_state["rp_diarrhoea"] = random.random() < 0.2
+    st.session_state["rp_diarrhea"] = random.random() < 0.2
     st.session_state["rp_cough"] = random.random() < 0.2
     st.session_state["rp_bleeding"] = random.random() < 0.15
     st.session_state["rp_prostration"] = random.random() < 0.2
@@ -449,7 +449,7 @@ with st.form("new_patient_form"):
     with sym_row2[1]:
         inp_nausea = st.checkbox("Nausea", value=st.session_state.get("rp_nausea", False))
     with sym_row2[2]:
-        inp_diarrhoea = st.checkbox("Diarrhoea", value=st.session_state.get("rp_diarrhoea", False))
+        inp_diarrhea = st.checkbox("Diarrhea", value=st.session_state.get("rp_diarrhea", False))
     with sym_row2[3]:
         inp_cough = st.checkbox("Cough", value=st.session_state.get("rp_cough", False))
     with sym_row2[4]:
@@ -500,7 +500,7 @@ if predict_clicked:
             "chills": inp_chills,
             "rigors": inp_rigors,
             "nausea": inp_nausea,
-            "diarrhoea": inp_diarrhoea,
+            "diarrhea": inp_diarrhea,
             "cough": inp_cough,
             "bleeding": inp_bleeding,
             "prostration": inp_prostration,
@@ -534,8 +534,8 @@ if predict_clicked:
             symptoms.append("Rigors")
         if inp_nausea:
             symptoms.append("Nausea")
-        if inp_diarrhoea:
-            symptoms.append("Diarrhoea")
+        if inp_diarrhea:
+            symptoms.append("Diarrhea")
         if inp_cough:
             symptoms.append("Cough")
         if inp_bleeding:

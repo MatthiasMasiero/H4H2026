@@ -27,7 +27,7 @@ CSV_PATH = "data/patients_validated.csv"
 
 SYMPTOM_COLS = [
     "fever", "muscle_pain", "jaundice", "vomiting", "confusion", "headache",
-    "chills", "rigors", "nausea", "diarrhoea", "cough", "bleeding",
+    "chills", "rigors", "nausea", "diarrhea", "cough", "bleeding",
     "prostration", "oliguria", "anuria", "conjunctival_suffusion",
     "muscle_tenderness",
 ]

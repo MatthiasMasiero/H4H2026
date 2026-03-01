@@ -63,7 +63,7 @@ EXTRA_SYMPTOM_MAP = {
     "Chillsad":           "chills",
     "Rigorsad":           "rigors",
     "Nauseaad":           "nausea",
-    "Diarrhoeaad":        "diarrhoea",
+    "Diarrhoeaad":        "diarrhea",
     "Coughad":            "cough",
     "Bleedingad":         "bleeding",
     "Prostrationad":      "prostration",

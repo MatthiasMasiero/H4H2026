@@ -29,7 +29,7 @@ from quantum_engine import (
     FEATURE_COLS,
     NUM_QUBITS,
     bootstrap_svm_from_csv,
-    bootstrap_svm_synthetic,
+    bootstrap_svm_reference,
     predict_quantum_svm,
     save_quantum_svm,
     load_quantum_svm,
@@ -103,7 +103,7 @@ def _row_to_raw_dict(row) -> dict:
         "chills": bool(int(row.get("chills", 0))),
         "rigors": bool(int(row.get("rigors", 0))),
         "nausea": bool(int(row.get("nausea", 0))),
-        "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+        "diarrhea": bool(int(row.get("diarrhea", 0))),
         "cough": bool(int(row.get("cough", 0))),
         "bleeding": bool(int(row.get("bleeding", 0))),
         "prostration": bool(int(row.get("prostration", 0))),
@@ -135,7 +135,7 @@ def _load_state():
             if os.path.exists(SVM_MODEL_PATH):
                 _state["svm_model"] = load_quantum_svm(SVM_MODEL_PATH)
             else:
-                model = bootstrap_svm_synthetic()
+                model = bootstrap_svm_reference()
                 os.makedirs(DATA_DIR, exist_ok=True)
                 save_quantum_svm(model, SVM_MODEL_PATH)
                 _state["svm_model"] = model
@@ -216,7 +216,7 @@ class PatientInput(BaseModel):
     chills: bool = False
     rigors: bool = False
     nausea: bool = False
-    diarrhoea: bool = False
+    diarrhea: bool = False
     cough: bool = False
     bleeding: bool = False
     prostration: bool = False
@@ -260,7 +260,7 @@ def _patient_to_raw_dict(patient: PatientInput) -> dict:
         "chills": patient.chills,
         "rigors": patient.rigors,
         "nausea": patient.nausea,
-        "diarrhoea": patient.diarrhoea,
+        "diarrhea": patient.diarrhea,
         "cough": patient.cough,
         "bleeding": patient.bleeding,
         "prostration": patient.prostration,

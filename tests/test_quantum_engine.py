@@ -28,7 +28,7 @@ from quantum_engine import (
     save_quantum_svm,
     load_quantum_svm,
     bootstrap_svm_from_csv,
-    bootstrap_svm_synthetic,
+    bootstrap_svm_reference,
 )
 
 
@@ -40,7 +40,7 @@ HEALTHY_PATIENT = {
     "fever": False, "muscle_pain": False, "jaundice": False,
     "vomiting": False, "confusion": False, "headache": False,
     "chills": False, "rigors": False, "nausea": False,
-    "diarrhoea": False, "cough": False, "bleeding": False,
+    "diarrhea": False, "cough": False, "bleeding": False,
     "prostration": False, "oliguria": False, "anuria": False,
     "conjunctival_suffusion": False, "muscle_tenderness": False,
 }
@@ -51,7 +51,7 @@ SICK_PATIENT = {
     "fever": True, "muscle_pain": True, "jaundice": True,
     "vomiting": True, "confusion": True, "headache": True,
     "chills": True, "rigors": True, "nausea": True,
-    "diarrhoea": True, "cough": True, "bleeding": True,
+    "diarrhea": True, "cough": True, "bleeding": True,
     "prostration": True, "oliguria": True, "anuria": True,
     "conjunctival_suffusion": True, "muscle_tenderness": True,
 }
@@ -384,7 +384,7 @@ class TestBootstrapSVMFromCSV:
                 "platelets": 200000 + i * 20000,
                 "fever": 0, "muscle_pain": 0, "jaundice": 0, "vomiting": 0,
                 "confusion": 0, "headache": 0, "chills": 0, "rigors": 0,
-                "nausea": 0, "diarrhoea": 0, "cough": 0, "bleeding": 0,
+                "nausea": 0, "diarrhea": 0, "cough": 0, "bleeding": 0,
                 "prostration": 0, "oliguria": 0, "anuria": 0,
                 "conjunctival_suffusion": 0, "muscle_tenderness": 0,
                 "diagnosis": 0,
@@ -397,7 +397,7 @@ class TestBootstrapSVMFromCSV:
                 "platelets": 50000 + i * 5000,
                 "fever": 1, "muscle_pain": 1, "jaundice": 1, "vomiting": 1,
                 "confusion": 0, "headache": 1, "chills": 1, "rigors": 1,
-                "nausea": 1, "diarrhoea": 0, "cough": 0, "bleeding": 1,
+                "nausea": 1, "diarrhea": 0, "cough": 0, "bleeding": 1,
                 "prostration": 0, "oliguria": 1, "anuria": 0,
                 "conjunctival_suffusion": 1, "muscle_tenderness": 1,
                 "diagnosis": 1,
@@ -413,12 +413,12 @@ class TestBootstrapSVMFromCSV:
         assert 0.0 <= prob <= 1.0
 
 
-# ── bootstrap_svm_synthetic ──────────────────────────────────────────────
+# ── bootstrap_svm_reference ──────────────────────────────────────────────
 
-class TestBootstrapSVMSynthetic:
+class TestBootstrapSVMReference:
     def test_produces_differentiated_predictions(self):
-        """Synthetic training data should give the SVM clear class separation."""
-        model = bootstrap_svm_synthetic(n_healthy=10, n_sick=10)
+        """Reference training data should give the SVM clear class separation."""
+        model = bootstrap_svm_reference(n_healthy=10, n_sick=10)
         assert model["n_train"] == 20
 
         p_healthy = predict_quantum_svm(HEALTHY_PATIENT, model)

@@ -83,7 +83,7 @@ class TestPredictEndpoint:
         resp_s = client.post("/predict", json=SICK_INPUT)
         p_h = resp_h.json()["anomaly_probability"]
         p_s = resp_s.json()["anomaly_probability"]
-        # With synthetic training data, the SVM learns the clinical weight
+        # With reference training data, the SVM learns the clinical weight
         # structure and should clearly rank sick > healthy.
         assert 0.0 <= p_h <= 1.0
         assert 0.0 <= p_s <= 1.0

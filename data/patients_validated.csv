@@ -1,4 +1,4 @@
-patient_id,age,sex,heart_rate,bp_systolic,bp_diastolic,wbc,platelets,fever,muscle_pain,jaundice,vomiting,confusion,headache,chills,rigors,nausea,diarrhoea,cough,bleeding,prostration,oliguria,anuria,conjunctival_suffusion,muscle_tenderness,diagnosis
+patient_id,age,sex,heart_rate,bp_systolic,bp_diastolic,wbc,platelets,fever,muscle_pain,jaundice,vomiting,confusion,headache,chills,rigors,nausea,diarrhea,cough,bleeding,prostration,oliguria,anuria,conjunctival_suffusion,muscle_tenderness,diagnosis
 LP_0005,17.0,M,76.0,120.0,80.0,9070.0,179000.0,1,1,1,1,0,1,1,1,1,0,0,0,1,1,0,1,1,1
 LP_0013,19.0,M,76.0,120.0,80.0,7100.0,139000.0,1,1,0,1,0,1,1,1,1,0,0,0,0,1,0,1,1,1
 LP_0015,37.0,M,60.0,110.0,70.0,6740.0,20000.0,0,1,0,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1

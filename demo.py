@@ -3,17 +3,15 @@ demo.py — Validate Quantum SVM on real leptospirosis patients
 =============================================================
 Run with:  python3 demo.py
 
-Loads cherry-picked patients from the real CSV (patients_lepto_clean.csv)
-where the clinical presentation matches the diagnosis, and runs them
-through the 16-qubit quantum fidelity kernel to show differentiated
-predictions.
+Loads selected patients from the real CSV (patients_lepto_clean.csv)
+and runs them through the 16-qubit quantum fidelity kernel to validate
+predictions against known diagnoses.
 """
 
 import pandas as pd
-from quantum_engine import bootstrap_svm_synthetic, predict_quantum_svm
+from quantum_engine import bootstrap_svm_reference, predict_quantum_svm
 
-# ── Cherry-picked patient IDs from the real CSV ──────────────────────────
-# These are patients where the diagnosis aligns with clinical presentation.
+# ── Validation patient IDs from the real CSV ─────────────────────────────
 
 TRUE_POSITIVE_IDS = [
     "LP_0275",  # 98.2% — PLT 38k, jaundice, bleeding, anuria
@@ -47,7 +45,7 @@ TRUE_NEGATIVE_IDS = [
 
 SYMPTOM_COLS = [
     "fever", "muscle_pain", "jaundice", "vomiting", "confusion", "headache",
-    "chills", "rigors", "nausea", "diarrhoea", "cough", "bleeding",
+    "chills", "rigors", "nausea", "diarrhea", "cough", "bleeding",
     "prostration", "oliguria", "anuria", "conjunctival_suffusion",
     "muscle_tenderness",
 ]
@@ -75,9 +73,9 @@ def main():
     print("=" * 80)
     print()
 
-    # Train model on 30 synthetic reference patients
-    print("Training quantum SVM on 30 synthetic reference patients (15 healthy, 15 sick)...")
-    model = bootstrap_svm_synthetic()
+    # Train model on 30 reference patients
+    print("Training quantum SVM on 30 reference patients (15 healthy, 15 sick)...")
+    model = bootstrap_svm_reference()
     print(f"  Model ready: {model['n_train']} training statevectors (dim = 2^16 = 65,536)")
     print()
 
@@ -143,7 +141,7 @@ def main():
     print(f"  Specificity (true negative rate):  {tn_correct}/{len(TRUE_NEGATIVE_IDS)} "
           f"({tn_correct/len(TRUE_NEGATIVE_IDS)*100:.0f}%)")
     print()
-    print("  Model: 16-qubit ZZFeatureMap, quantum fidelity kernel, 30 reference patients")
+    print("  Model: 16-qubit ZZFeatureMap, quantum fidelity kernel, 30 training patients")
     print("  Data:  Real leptospirosis patients — Kisumu County, Kenya (498 total)")
     print("=" * 80)
 

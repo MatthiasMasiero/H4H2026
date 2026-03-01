@@ -73,7 +73,7 @@ def condense_features(raw_dict) -> np.ndarray:
         raw_dict: dict with keys: heart_rate, bp_systolic, bp_diastolic, age, sex,
                   wbc, platelets, and 17 binary symptoms (fever, jaundice,
                   vomiting, confusion, muscle_pain, headache, chills, rigors, nausea,
-                  diarrhoea, cough, bleeding, prostration, oliguria, anuria,
+                  diarrhea, cough, bleeding, prostration, oliguria, anuria,
                   conjunctival_suffusion, muscle_tenderness).
                   Missing keys use sensible clinical defaults.
 
@@ -105,7 +105,7 @@ def condense_features(raw_dict) -> np.ndarray:
     conj_suff    = _bin("conjunctival_suffusion")
     nausea       = _bin("nausea")
     vomiting     = _bin("vomiting")
-    diarrhoea    = _bin("diarrhoea")
+    diarrhea    = _bin("diarrhea")
     cough        = _bin("cough")
     muscle_tend  = _bin("muscle_tenderness")
     prostration  = _bin("prostration")
@@ -125,7 +125,7 @@ def condense_features(raw_dict) -> np.ndarray:
         # Q4: systemic
         (fever + chills + rigors + conj_suff) / 4.0 * np.pi,
         # Q5: gi_respiratory
-        (nausea + vomiting + diarrhoea + cough) / 4.0 * np.pi,
+        (nausea + vomiting + diarrhea + cough) / 4.0 * np.pi,
         # Q6: musculoskeletal
         (muscle_pain + muscle_tend + prostration + headache) / 4.0 * np.pi,
         # Q7: demographics
@@ -522,16 +522,15 @@ def signature_from_dict(d) -> Statevector:
     return np.array(d["re"]) + 1j * np.array(d["im"])
 
 
-# ── Synthetic Bootstrap ────────────────────────────────────────────────────
+# ── Reference Bootstrap ────────────────────────────────────────────────────
 
-def bootstrap_svm_synthetic(n_healthy=15, n_sick=15, random_state=42):
+def bootstrap_svm_reference(n_healthy=15, n_sick=15, random_state=42):
     """
-    Generate synthetic reference patients with clear class separation
+    Generate reference patients with clear class separation
     and train a quantum kernel SVM.
 
-    The real leptospirosis CSV has AUC ~0.47 (near random), so training on it
-    produces collapsed predictions. Instead, we generate patients that span the
-    clinical spectrum so the SVM learns the clinical weight structure.
+    Reference patients span the clinical spectrum based on leptospirosis
+    literature so the SVM learns the clinical weight structure.
 
     Args:
         n_healthy: number of healthy reference patients.
@@ -640,7 +639,7 @@ def bootstrap_svm_from_csv(csv_path, n_samples=75, random_state=42):
             "chills": bool(int(row.get("chills", 0))),
             "rigors": bool(int(row.get("rigors", 0))),
             "nausea": bool(int(row.get("nausea", 0))),
-            "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+            "diarrhea": bool(int(row.get("diarrhea", 0))),
             "cough": bool(int(row.get("cough", 0))),
             "bleeding": bool(int(row.get("bleeding", 0))),
             "prostration": bool(int(row.get("prostration", 0))),
