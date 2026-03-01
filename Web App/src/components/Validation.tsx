@@ -23,6 +23,8 @@ interface PatientResult extends RealPatient {
   correct: boolean;
 }
 
+const isMobile = window.innerWidth < 768;
+
 const POSITIVE_PATIENTS: RealPatient[] = [
   { id: "LP_0005", diagnosis: 1, age: 17, sex: "M", heart_rate: 76, bp_systolic: 120, bp_diastolic: 80, wbc: 9070, platelets: 179000, symptoms: ["fever", "muscle_pain", "jaundice", "vomiting", "headache", "chills", "rigors", "nausea", "prostration", "oliguria", "conjunctival_suffusion", "muscle_tenderness"] },
   { id: "LP_0013", diagnosis: 1, age: 19, sex: "M", heart_rate: 76, bp_systolic: 120, bp_diastolic: 80, wbc: 7100, platelets: 139000, symptoms: ["fever", "muscle_pain", "vomiting", "headache", "chills", "rigors", "nausea", "oliguria", "conjunctival_suffusion", "muscle_tenderness"] },
@@ -214,6 +216,7 @@ function PatientRow({ r, index }: { r: PatientResult; index: number }) {
         borderRadius: 8,
         fontSize: 13,
         fontFamily: "var(--mono)",
+        width: isMobile ? "150vw" : 'auto',
       }}
     >
       <span style={{ fontWeight: 700 }}>{r.id}</span>
@@ -693,6 +696,7 @@ export default function Validation() {
                       {results.length} random patients
                     </span>
                   </h3>
+                  <div style={{overflowX: 'scroll'}}>
                   <div
                     style={{
                       display: "grid",
@@ -713,10 +717,11 @@ export default function Validation() {
                     <span>Platelets</span>
                     <span></span>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2}}>
                     {results.map((r, i) => (
                       <PatientRow key={r.id} r={r} index={i} />
                     ))}
+                  </div>
                   </div>
                 </div>
 
