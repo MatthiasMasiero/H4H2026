@@ -36,14 +36,13 @@ class TestLoadData:
 
 
 class TestGetModels:
-    def test_returns_four_models(self):
+    def test_returns_three_models(self):
         models = get_models()
-        assert len(models) == 4
+        assert len(models) == 3
 
     def test_model_names(self):
         models = get_models()
-        expected = {"Logistic Regression", "Random Forest",
-                    "Gradient Boosting", "SVM (RBF)"}
+        expected = {"Random Forest", "Gradient Boosting", "SVM (RBF)"}
         assert set(models.keys()) == expected
 
     def test_pipelines_have_scaler(self):
@@ -84,11 +83,11 @@ class TestReferenceProfiles:
 
 
 class TestBenchmark:
-    def test_returns_five_results(self):
+    def test_returns_four_results(self):
         X_train, y_train = generate_reference_profiles()
         X_test, y_test, _ = load_data()
         results = run_benchmark(X_train, y_train, X_test, y_test)
-        assert len(results) == 5  # 4 classical + 1 quantum
+        assert len(results) == 4  # 3 classical + 1 quantum
 
     def test_includes_quantum_results(self):
         X_train, y_train = generate_reference_profiles()

@@ -14,7 +14,6 @@ Run with:  python3 classical_benchmark.py
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -65,10 +64,6 @@ def load_data(csv_path=CSV_PATH):
 def get_models():
     """Return dict of name -> sklearn Pipeline for each classical model."""
     return {
-        "Logistic Regression": Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf", LogisticRegression(max_iter=1000, random_state=42)),
-        ]),
         "Random Forest": Pipeline([
             ("scaler", StandardScaler()),
             ("clf", RandomForestClassifier(
