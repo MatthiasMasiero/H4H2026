@@ -288,11 +288,20 @@ function PatientForm() {
                             fontSize: "clamp(28px, 4vw, 44px)",
                             fontWeight: 400,
                             letterSpacing: "-0.02em",
-                            marginBottom: 32,
+                            marginBottom: 8,
                         }}
                     >
-                        Patient Diagnosis
+                        Patient Diagnosis Demo
                     </h2>
+                    <p style={{
+                        fontFamily: "'EB Garamond', Georgia, 'Times New Roman', serif",
+                        fontSize: "clamp(16px, 2.5vw, 22px)",
+                        fontWeight: 400,
+                        color: "#6b6b6b",
+                        marginBottom: 32,
+                    }}>
+                        Run predictive diagnoses for leptospirosis
+                    </p>
                     <div style={{
                         display: "flex",
                         justifyContent: "center",
