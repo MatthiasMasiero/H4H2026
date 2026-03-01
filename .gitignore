@@ -19,6 +19,7 @@ Thumbs.db
 
 # Claude
 .claude/
+CLAUDE.md
 
 # Vercel
 .vercel/
