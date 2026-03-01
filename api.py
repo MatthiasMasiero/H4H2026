@@ -27,6 +27,11 @@ from quantum_engine import (
     normalize_features,
     FEATURE_COLS,
     NUM_QUBITS,
+    bootstrap_svm_from_csv,
+    predict_quantum_svm,
+    save_quantum_svm,
+    load_quantum_svm,
+    NUM_QUBITS_16,
 )
 from aggregator import FederatedAggregator
 
@@ -37,6 +42,8 @@ DATA_DIR = "data"
 SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
 CSV_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 CLINICS_DIR = "clinics"
+SVM_MODEL_PATH = os.path.join(DATA_DIR, "quantum_svm_model.npz")
+SVM_N_SAMPLES = 75
 
 
 # ── In-memory model cache ────────────────────────────────────────────────────
@@ -106,7 +113,7 @@ def _row_to_raw_dict(row) -> dict:
 
 
 def _load_state():
-    """Load signatures, labels, and params on startup."""
+    """Load signatures, labels, params, and quantum SVM on startup."""
     if not os.path.exists(SIGS_PATH):
         sigs, labs, par = _bootstrap_from_csv()
         _state["signatures"] = sigs
@@ -118,6 +125,15 @@ def _load_state():
         _state["signatures"] = stored["signatures"]
         _state["labels"] = stored.get("labels", {})
         _state["params"] = stored.get("params", {})
+
+    # Load or train 16-qubit quantum SVM
+    if os.path.exists(SVM_MODEL_PATH):
+        _state["svm_model"] = load_quantum_svm(SVM_MODEL_PATH)
+    elif os.path.exists(CSV_PATH):
+        model = bootstrap_svm_from_csv(CSV_PATH, n_samples=SVM_N_SAMPLES)
+        os.makedirs(DATA_DIR, exist_ok=True)
+        save_quantum_svm(model, SVM_MODEL_PATH)
+        _state["svm_model"] = model
 
     # Load global boundary if clinics have been federated
     _load_global_boundary()
@@ -266,25 +282,31 @@ async def predict(patient: PatientInput):
     and return a diagnostic prediction.
     """
     try:
-        # Quantum encode: condense clinical features → 8-qubit ZZFeatureMap → statevector
         raw_dict = _patient_to_raw_dict(patient)
-        condensed = condense_features(raw_dict)
-        sig = get_quantum_signature(raw_dict)
 
-        # Quantum risk score: mean of the 8 condensed circuit parameters / pi.
-        # Each parameter captures an organ-system composite (cardiac, vascular,
-        # hematologic, organ damage, systemic, GI/respiratory, musculoskeletal,
-        # demographics) in [0, pi]. Higher values = more abnormal findings.
-        anomaly_prob = float(condensed.mean() / math.pi)
-        healthy_prob = 1.0 - anomaly_prob
-        prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
+        svm_model = _state.get("svm_model")
+        if svm_model is not None:
+            anomaly_prob = predict_quantum_svm(raw_dict, svm_model)
+            healthy_prob = 1.0 - anomaly_prob
+            prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
+            model_used = "quantum_kernel_svm_16q"
+            sig_dim = 2 ** NUM_QUBITS_16
+        else:
+            # Fallback to old mean/pi scoring
+            condensed = condense_features(raw_dict)
+            sig = get_quantum_signature(raw_dict)
+            anomaly_prob = float(condensed.mean() / math.pi)
+            healthy_prob = 1.0 - anomaly_prob
+            prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
+            model_used = "quantum_risk_score"
+            sig_dim = len(sig)
 
         return PredictionResult(
             prediction=prediction,
             anomaly_probability=round(anomaly_prob, 4),
             healthy_probability=round(healthy_prob, 4),
-            model_used="quantum_risk_score",
-            quantum_signature_dim=len(sig),
+            model_used=model_used,
+            quantum_signature_dim=sig_dim,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
