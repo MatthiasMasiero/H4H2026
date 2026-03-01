@@ -190,7 +190,7 @@ async def predict(patient: PatientInput):
         if "global_weights" in _state:
             w = np.asarray(_state["global_weights"]).flatten()
             b = float(_state["global_intercept"])
-            decision = float(feature_vec @ w + b)
+            decision = float((feature_vec @ w + b).item())
             anomaly_prob = 1.0 / (1.0 + np.exp(-decision))
             healthy_prob = 1.0 - anomaly_prob
             prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
