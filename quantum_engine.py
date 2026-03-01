@@ -361,6 +361,62 @@ def get_quantum_signature_16q(data_row) -> np.ndarray:
     return sv.data
 
 
+# ── Quantum Kernel SVM ─────────────────────────────────────────────────────
+
+def train_quantum_svm(patient_label_pairs):
+    """
+    Train a quantum kernel SVM on patient data.
+
+    Args:
+        patient_label_pairs: list of (raw_dict, label) tuples.
+            raw_dict: patient features dict.
+            label: 0 (healthy) or 1 (positive).
+
+    Returns:
+        dict with keys:
+            train_statevectors: list of complex statevectors for all training patients
+            train_params: (n_train, 16) encoded params
+            train_labels: (n_train,) labels
+            n_train: int
+            svc: fitted sklearn SVC with precomputed kernel
+    """
+    from sklearn.svm import SVC
+
+    n = len(patient_label_pairs)
+    params_list = []
+    statevectors = []
+    labels = []
+
+    for raw_dict, label in patient_label_pairs:
+        enc = encode_16q(raw_dict)
+        params_list.append(enc)
+        sv = get_quantum_signature_16q(enc)
+        statevectors.append(sv)
+        labels.append(label)
+
+    params_matrix = np.array(params_list)
+    labels_arr = np.array(labels)
+
+    # Compute fidelity kernel matrix
+    K = np.empty((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            fid = np.abs(np.vdot(statevectors[i], statevectors[j])) ** 2
+            K[i, j] = K[j, i] = fid
+
+    # Train SVM with precomputed kernel
+    svc = SVC(kernel="precomputed", probability=True)
+    svc.fit(K, labels_arr)
+
+    return {
+        "train_statevectors": statevectors,
+        "train_params": params_matrix,
+        "train_labels": labels_arr,
+        "n_train": n,
+        "svc": svc,
+    }
+
+
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
 
 def signature_to_dict(sig) -> dict:

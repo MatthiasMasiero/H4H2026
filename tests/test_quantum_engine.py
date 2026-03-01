@@ -23,6 +23,7 @@ from quantum_engine import (
     NUM_QUBITS_16,
     CLINICAL_WEIGHTS_16Q,
     SELECTED_SYMPTOMS_16Q,
+    train_quantum_svm,
 )
 
 
@@ -263,3 +264,37 @@ class TestGetQuantumSignature16q:
         h = get_quantum_signature_16q({**HEALTHY_PATIENT, "headache": True})
         fidelity = np.abs(np.vdot(j, h)) ** 2
         assert fidelity < 0.99, "Different weighted symptoms should produce distinguishable states"
+
+
+# ── train_quantum_svm ──────────────────────────────────────────────────────
+
+class TestTrainQuantumSVM:
+    def test_returns_model_dict(self):
+        """Should return a dict with required keys."""
+        patients = []
+        for i in range(3):
+            p = {**HEALTHY_PATIENT, "heart_rate": 60 + i * 5}
+            patients.append((p, 0))
+        for i in range(3):
+            p = {**SICK_PATIENT, "heart_rate": 100 + i * 5}
+            patients.append((p, 1))
+
+        model = train_quantum_svm(patients)
+        assert "train_statevectors" in model
+        assert "train_params" in model
+        assert "train_labels" in model
+        assert "n_train" in model
+        assert "svc" in model
+
+    def test_train_statevectors_are_normalized(self):
+        """All training statevectors should be normalized quantum states."""
+        patients = []
+        for i in range(3):
+            patients.append(({**HEALTHY_PATIENT, "heart_rate": 60 + i * 5}, 0))
+        for i in range(3):
+            patients.append(({**SICK_PATIENT, "heart_rate": 100 + i * 5}, 1))
+
+        model = train_quantum_svm(patients)
+        for sv in model["train_statevectors"]:
+            norm = np.sum(np.abs(sv) ** 2)
+            assert np.isclose(norm, 1.0), f"Statevector not normalized: {norm}"
