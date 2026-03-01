@@ -8,7 +8,7 @@ function Process() {
     },
     {
       title: "Quantum Encode",
-      desc: "A ZZFeatureMap circuit with linear entanglement maps clinical features into a 16-dimensional quantum state vector.",
+      desc: "A ZZFeatureMap circuit with linear entanglement maps clinical features into a 65,536-dimensional quantum state vector.",
     },
     {
       title: "Shred Source Data",
