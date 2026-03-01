@@ -520,6 +520,31 @@ export default function Validation() {
             ))}
           </div>
 
+          <h3
+            style={{
+              fontFamily: "var(--serif)",
+              fontSize: 22,
+              fontWeight: 400,
+              marginBottom: 8,
+            }}
+          >
+            Full Dataset Results
+            <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
+              141 patients from Kisumu County, Kenya
+            </span>
+          </h3>
+          <p
+            style={{
+              fontSize: 14,
+              color: "var(--gray-600)",
+              marginBottom: 24,
+              lineHeight: 1.6,
+            }}
+          >
+            Confusion matrix from running all 141 patients through the 16-qubit quantum fidelity kernel.
+          </p>
+          <ConfusionMatrix tp={34} fn={23} fp={7} tn={77} />
+
           <button
             onClick={runValidation}
             disabled={running}
@@ -665,35 +690,6 @@ export default function Validation() {
                     ))}
                   </div>
                 </div>
-
-                {!running && (
-                  <>
-                    <h3
-                      style={{
-                        fontFamily: "var(--serif)",
-                        fontSize: 22,
-                        fontWeight: 400,
-                        marginBottom: 8,
-                      }}
-                    >
-                      Full Dataset Results
-                      <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
-                        141 patients from Kisumu County, Kenya
-                      </span>
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: 14,
-                        color: "var(--gray-600)",
-                        marginBottom: 24,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      Confusion matrix from running all 141 patients through the 16-qubit quantum fidelity kernel.
-                    </p>
-                    <ConfusionMatrix tp={34} fn={23} fp={7} tn={77} />
-                  </>
-                )}
 
                 <p
                   style={{
