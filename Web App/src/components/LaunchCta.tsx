@@ -56,7 +56,7 @@ const HEALTHY_PRESET: PatientData = {
     chills: false,
     rigors: false,
     nausea: false,
-    diarrea: false,
+    diarrhea: false,
     cough: false,
     bleeding: false,
     prostration: false,
