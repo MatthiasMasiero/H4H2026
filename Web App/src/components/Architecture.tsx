@@ -3,6 +3,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+const isMobile = window.innerWidth < 768;
+
 function Architecture() {
   const nodes = [
     { label: "Vitals CSV", tech: "4 Features" },
@@ -54,11 +56,11 @@ function Architecture() {
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            gap: 0,
-            flexWrap: "nowrap",
-            overflowX: "auto",
+            justifyContent: 'center',
+            gap: '10',
+            flexWrap: "wrap",
             paddingBottom: 8,
+            maxWidth: '100vw',
           }}
         >
           {nodes.map((node, i) => (
@@ -68,6 +70,7 @@ function Architecture() {
                 display: "flex",
                 alignItems: "center",
                 flexShrink: 0,
+                flexDirection: (isMobile ? 'column' : 'row'),
               }}
             >
               <div
@@ -119,7 +122,6 @@ function Architecture() {
         </div>
       </Reveal>
 
-      {/* Tech grid below the pipeline */}
       <Reveal delay={0.2}>
         <div
           style={{

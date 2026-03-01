@@ -80,31 +80,11 @@ function Footer() {
                   marginBottom: 4,
                 }}
               >
-                Technology
-              </span>
-              <span className="footer-link">Qiskit</span>
-              <span className="footer-link">Streamlit</span>
-              <span className="footer-link">scikit-learn</span>
-              <span className="footer-link">React + Vite</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--ink)",
-                  marginBottom: 4,
-                }}
-              >
                 Connect
               </span>
-              <a href="#" className="footer-link">
+              <a href="https://github.com/MatthiasMasiero/H4H2026" className="footer-link">
                 <Github size={13} /> GitHub
               </a>
-              <a href="#" className="footer-link">Documentation</a>
-              <a href="#" className="footer-link">Contact</a>
             </div>
           </div>
         </div>
@@ -128,10 +108,10 @@ function Footer() {
               color: "var(--gray-400)",
             }}
           >
-            &copy; 2026 QuantumDx
+            2026 QuantumDx
           </span>
           <div style={{ display: "flex", gap: 16 }}>
-            {["Privacy-First", "Quantum-Powered", "Federated"].map((b) => (
+            {["Privacy-First", "Quantum-Powered", "Solution Driven"].map((b) => (
               <span
                 key={b}
                 style={{

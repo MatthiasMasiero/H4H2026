@@ -103,7 +103,7 @@ function Hero() {
             style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}
           >
             <a
-              href="#launch"
+              href="#demo"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -118,7 +118,7 @@ function Hero() {
                 transition: "background 0.2s",
               }}
             >
-              Launch Demo <ArrowRight size={15} />
+              Try Our Demo <ArrowRight size={15} />
             </a>
             <a
               href="#process"

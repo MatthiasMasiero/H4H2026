@@ -16,7 +16,7 @@ function Nav() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const links = ["Process", "Privacy", "Stack", "Launch"];
+  const links = ["Process", "Privacy", "Stack", "Demo"];
 
   return (
     <>
@@ -76,7 +76,7 @@ function Nav() {
               </a>
             ))}
             <a
-              href="#launch"
+              href="#demo"
               style={{
                 fontSize: 13,
                 fontWeight: 600,
@@ -86,7 +86,7 @@ function Nav() {
                 gap: 3,
               }}
             >
-              Open App <ArrowUpRight size={13} />
+              Try It Out <ArrowUpRight size={13} />
             </a>
           </div>
 
@@ -105,7 +105,7 @@ function Nav() {
               padding: 4,
             }}
           >
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileOpen ? <X size={22}/> : <Menu size={22} />}
           </button>
         </div>
       </motion.nav>
