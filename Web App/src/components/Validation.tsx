@@ -473,10 +473,9 @@ export default function Validation() {
             }}
           >
             Testing the 16-qubit quantum fidelity kernel against{" "}
-            <strong>141 clinically filtered leptospirosis patients</strong> from Kisumu County, Kenya.
-            Patients selected by clinical severity markers: positive cases have 2+ severe symptoms
-            (jaundice, oliguria, bleeding, anuria, conjunctival suffusion), negative cases have
-            no severe symptoms and normal platelet counts.
+            <strong>141 real leptospirosis patients</strong> from Kisumu County, Kenya.
+            Each patient is encoded into a 65,536-dimensional quantum state and
+            classified via fidelity clustering against 30 synthetic reference patients.
           </p>
 
           <div
@@ -651,7 +650,7 @@ export default function Validation() {
                     >
                       Confirmed Positive Patients
                       <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
-                        {tpResults.length} patients with 2+ severe symptoms
+                        {tpResults.length} patients
                       </span>
                     </h3>
                     <div
@@ -693,7 +692,7 @@ export default function Validation() {
                     >
                       Confirmed Negative Patients
                       <span style={{ fontSize: 14, color: "var(--gray-400)", fontFamily: "var(--mono)", marginLeft: 12 }}>
-                        {tnResults.length} patients with no severe symptoms
+                        {tnResults.length} patients
                       </span>
                     </h3>
                     <div
@@ -731,7 +730,7 @@ export default function Validation() {
                     textAlign: "center",
                   }}
                 >
-                  141 clinically filtered patients from 498-patient leptospirosis dataset (Kisumu County, Kenya).
+                  141 real patients from 498-patient leptospirosis dataset (Kisumu County, Kenya).
                   Each prediction runs a live 16-qubit quantum circuit simulation.
                 </p>
               </motion.div>
