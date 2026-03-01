@@ -274,6 +274,95 @@ def shred_data(filepath) -> None:
 
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
 
+# ── 16-Qubit Constants ─────────────────────────────────────────────────────
+
+NUM_QUBITS_16 = 16
+
+# Clinical weights for binary symptoms (leptospirosis literature)
+CLINICAL_WEIGHTS_16Q = {
+    "jaundice":                0.95,  # Pathognomonic for Weil's disease
+    "oliguria":                0.90,  # Renal involvement, severe
+    "conjunctival_suffusion":  0.85,  # Classic leptospirosis sign
+    "bleeding":                0.80,  # Hemorrhagic complications
+    "anuria":                  0.85,  # Severe renal failure
+    "fever":                   0.70,  # Universal but not specific
+    "muscle_pain":             0.75,  # Classic calf pain presentation
+    "vomiting":                0.60,  # GI involvement
+    "headache":                0.50,  # Common, least specific
+}
+
+SELECTED_SYMPTOMS_16Q = list(CLINICAL_WEIGHTS_16Q.keys())
+
+FEATURE_COLS_16Q = [
+    "heart_rate", "bp_systolic", "bp_diastolic", "wbc",
+    "platelets_inv", "age", "sex",
+    "jaundice", "oliguria", "conjunctival_suffusion",
+    "bleeding", "anuria", "fever", "muscle_pain", "vomiting", "headache",
+]
+
+
+def build_feature_map_16q():
+    """Construct a 16-qubit ZZFeatureMap with linear entanglement (depth=2)."""
+    return ZZFeatureMap(feature_dimension=NUM_QUBITS_16, reps=2, entanglement="linear")
+
+
+def encode_16q(raw_dict) -> np.ndarray:
+    """
+    Encode 16 clinical features individually for 16-qubit quantum circuit.
+    No condensation — each feature gets its own qubit.
+
+    Qubits 0-5: continuous vitals normalized to [0, pi]
+    Qubit 6: sex (F -> pi, M -> 0)
+    Qubits 7-15: 9 key symptoms with clinical weights (0 or weight * pi)
+
+    Returns:
+        np.ndarray of shape (16,) with values in [0, pi].
+    """
+    hr = float(raw_dict.get("heart_rate", 72.0))
+    sbp = float(raw_dict.get("bp_systolic", 120.0))
+    dbp = float(raw_dict.get("bp_diastolic", 80.0))
+    wbc = float(raw_dict.get("wbc", 7000.0))
+    platelets = float(raw_dict.get("platelets", 250000.0))
+    age = float(raw_dict.get("age", 25.0))
+
+    sex_raw = raw_dict.get("sex", "M")
+    sex_val = np.pi if str(sex_raw).upper() in ("F", "FEMALE") else 0.0
+
+    encoded = np.array([
+        _normalize_raw(hr, "heart_rate"),                    # Q0
+        _normalize_raw(sbp, "bp_systolic"),                  # Q1
+        _normalize_raw(dbp, "bp_diastolic"),                 # Q2
+        _normalize_raw(wbc, "wbc"),                          # Q3
+        np.pi - _normalize_raw(platelets, "platelets"),      # Q4: inverted
+        _normalize_raw(age, "age"),                          # Q5
+        sex_val,                                             # Q6
+    ] + [
+        CLINICAL_WEIGHTS_16Q[sym] * np.pi
+        if raw_dict.get(sym, False) else 0.0
+        for sym in SELECTED_SYMPTOMS_16Q                     # Q7-Q15
+    ], dtype=np.float64)
+
+    return np.clip(encoded, 0.0, np.pi)
+
+
+def get_quantum_signature_16q(data_row) -> np.ndarray:
+    """
+    Encode patient features into a 16-qubit quantum state via ZZFeatureMap
+    and return the full complex state vector (length 2^16 = 65536).
+    """
+    if isinstance(data_row, dict):
+        features = encode_16q(data_row)
+    else:
+        features = np.asarray(data_row, dtype=np.float64)[:NUM_QUBITS_16]
+    normed = np.clip(features, 0.0, np.pi)
+
+    circuit = build_feature_map_16q().assign_parameters(normed)
+    sv = Statevector.from_instruction(circuit)
+    return sv.data
+
+
+# ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
+
 def signature_to_dict(sig) -> dict:
     """Convert a complex state vector to a JSON-serializable dict."""
     return {"re": np.real(sig).tolist(), "im": np.imag(sig).tolist()}

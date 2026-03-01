@@ -17,6 +17,12 @@ from quantum_engine import (
     NUM_QUBITS,
     CLINICAL_RANGES,
     RAW_CLINICAL_RANGES,
+    encode_16q,
+    build_feature_map_16q,
+    get_quantum_signature_16q,
+    NUM_QUBITS_16,
+    CLINICAL_WEIGHTS_16Q,
+    SELECTED_SYMPTOMS_16Q,
 )
 
 
@@ -192,3 +198,68 @@ class TestSerialization:
         d = signature_to_dict(sig)
         recovered = signature_from_dict(d)
         np.testing.assert_array_almost_equal(sig, recovered)
+
+
+# ── 16-Qubit Encoding ────────────────────────────────────────────────────
+
+class TestEncode16q:
+    def test_output_shape(self):
+        """Should return a 16-dim array."""
+        result = encode_16q(HEALTHY_PATIENT)
+        assert result.shape == (16,)
+
+    def test_values_in_range(self):
+        """All values should be in [0, pi]."""
+        for patient in [HEALTHY_PATIENT, SICK_PATIENT]:
+            result = encode_16q(patient)
+            assert np.all(result >= 0.0), f"Found value below 0: {result}"
+            assert np.all(result <= np.pi + 1e-10), f"Found value above pi: {result}"
+
+    def test_jaundice_weight_higher_than_headache(self):
+        """Jaundice (weight 0.95) should produce a larger value than headache (weight 0.50)."""
+        jaundice_only = {**HEALTHY_PATIENT, "jaundice": True}
+        headache_only = {**HEALTHY_PATIENT, "headache": True}
+        j = encode_16q(jaundice_only)
+        h = encode_16q(headache_only)
+        assert j[7] > h[15], "Jaundice should encode with higher angle than headache"
+
+    def test_different_symptoms_different_values(self):
+        """Each symptom should produce a different encoded value due to clinical weights."""
+        jaundice_only = {**HEALTHY_PATIENT, "jaundice": True}
+        fever_only = {**HEALTHY_PATIENT, "fever": True}
+        j = encode_16q(jaundice_only)
+        f = encode_16q(fever_only)
+        assert not np.allclose(j, f)
+
+    def test_defaults_for_missing_keys(self):
+        """Should use defaults when keys are missing."""
+        minimal = {"heart_rate": 72, "bp_systolic": 120}
+        result = encode_16q(minimal)
+        assert result.shape == (16,)
+        assert np.all(result >= 0.0) and np.all(result <= np.pi + 1e-10)
+
+
+class TestGetQuantumSignature16q:
+    def test_shape_and_dtype(self):
+        """Signature should be a length-65536 complex vector."""
+        sig = get_quantum_signature_16q(HEALTHY_PATIENT)
+        assert sig.shape == (2 ** 16,)
+        assert np.issubdtype(sig.dtype, np.complexfloating)
+
+    def test_normalization(self):
+        """Quantum state must be normalized (sum of |amp|^2 == 1)."""
+        sig = get_quantum_signature_16q(HEALTHY_PATIENT)
+        assert np.isclose(np.sum(np.abs(sig) ** 2), 1.0)
+
+    def test_deterministic(self):
+        """Same input should always produce the same signature."""
+        s1 = get_quantum_signature_16q(HEALTHY_PATIENT)
+        s2 = get_quantum_signature_16q(HEALTHY_PATIENT)
+        np.testing.assert_array_equal(s1, s2)
+
+    def test_weighted_symptoms_produce_different_states(self):
+        """Jaundice-only and headache-only should give distinct statevectors."""
+        j = get_quantum_signature_16q({**HEALTHY_PATIENT, "jaundice": True})
+        h = get_quantum_signature_16q({**HEALTHY_PATIENT, "headache": True})
+        fidelity = np.abs(np.vdot(j, h)) ** 2
+        assert fidelity < 0.99, "Different weighted symptoms should produce distinguishable states"
