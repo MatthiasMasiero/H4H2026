@@ -452,7 +452,8 @@ def predict_quantum_svm(raw_dict, model):
 
     # Anomaly probability from relative similarity to sick cluster
     # Laplace-style smoothing (ε) prevents collapsing to exactly 0% or 100%
-    eps = 0.02
+    # eps must scale with fidelity magnitudes (which are ~1e-5 in 65536-dim space)
+    eps = 0.02 * max(mean_fid_healthy, mean_fid_sick, 1e-15)
     total = mean_fid_healthy + mean_fid_sick + 2 * eps
     if total < 1e-12:
         return 0.5
