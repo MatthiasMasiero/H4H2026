@@ -21,7 +21,7 @@ interface PatientData {
     chills: boolean;
     rigors: boolean;
     nausea: boolean;
-    diarrhoea: boolean;
+    diarrhea: boolean;
     cough: boolean;
     bleeding: boolean;
     prostration: boolean;
@@ -56,7 +56,7 @@ const HEALTHY_PRESET: PatientData = {
     chills: false,
     rigors: false,
     nausea: false,
-    diarrhoea: false,
+    diarrea: false,
     cough: false,
     bleeding: false,
     prostration: false,
@@ -83,7 +83,7 @@ const SICK_PRESET: PatientData = {
     chills: true,
     rigors: true,
     nausea: true,
-    diarrhoea: true,
+    diarrhea: true,
     cough: true,
     bleeding: true,
     prostration: true,
@@ -116,7 +116,7 @@ function generateRandomPatient(): PatientData {
         chills: Math.random() < 0.4,
         rigors: Math.random() < 0.3,
         nausea: Math.random() < 0.3,
-        diarrhoea: Math.random() < 0.2,
+        diarrhea: Math.random() < 0.2,
         cough: Math.random() < 0.2,
         bleeding: Math.random() < 0.15,
         prostration: Math.random() < 0.2,
@@ -145,7 +145,7 @@ function PatientForm() {
         chills: false,
         rigors: false,
         nausea: false,
-        diarrhoea: false,
+        diarrhea: false,
         cough: false,
         bleeding: false,
         prostration: false,
@@ -204,7 +204,7 @@ function PatientForm() {
                     chills: form.chills,
                     rigors: form.rigors,
                     nausea: form.nausea,
-                    diarrhoea: form.diarrhoea,
+                    diarrhea: form.diarrhea,
                     cough: form.cough,
                     bleeding: form.bleeding,
                     prostration: form.prostration,
@@ -390,7 +390,7 @@ function PatientForm() {
                             { name: "chills", label: "Chills" },
                             { name: "rigors", label: "Rigors" },
                             { name: "nausea", label: "Nausea" },
-                            { name: "diarrhoea", label: "Diarrhoea" },
+                            { name: "diarrhea", label: "Diarrhea" },
                             { name: "cough", label: "Cough" },
                             { name: "bleeding", label: "Bleeding" },
                             { name: "prostration", label: "Prostration" },
@@ -542,7 +542,7 @@ function PatientForm() {
                                             fontStyle: "italic",
                                             color: result.prediction === "healthy" ? "#228B22" : "var(--red)",
                                         }}>
-                                            {result.prediction === "healthy" ? "Healthy" : "Anomaly Detected"}
+                                            {result.prediction === "healthy" ? "Likely Negative" : "Potentially Positive"}
                                         </span>
                                     </motion.div>
                                 </div>
@@ -557,7 +557,7 @@ function PatientForm() {
                                             fontFamily: "var(--mono)",
                                             fontSize: 13,
                                         }}>
-                                            <span>Healthy</span>
+                                            <span>Negative</span>
                                             <span style={{ fontWeight: 700 }}>{healthyPct}%</span>
                                         </div>
                                         <div style={{
@@ -586,7 +586,7 @@ function PatientForm() {
                                             fontFamily: "var(--mono)",
                                             fontSize: 13,
                                         }}>
-                                            <span>Anomaly</span>
+                                            <span>Positive</span>
                                             <span style={{ fontWeight: 700 }}>{anomalyPct}%</span>
                                         </div>
                                         <div style={{
