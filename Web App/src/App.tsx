@@ -5,6 +5,7 @@ import TechMarquee from "./components/TechMarquee";
 import PrivacyStatement from "./components/PrivacyStatement";
 import Architecture from "./components/Architecture";
 import LaunchCta from "./components/LaunchCta";
+import WhyQuantum from "./components/WhyQuantum";
 import Footer from "./components/Footer";
 
 import './App.css'
@@ -19,6 +20,7 @@ export default function App() {
       <PrivacyStatement />
       <Architecture />
       <LaunchCta />
+      <WhyQuantum />
       <Footer />
     </>
   );
