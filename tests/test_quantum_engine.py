@@ -24,6 +24,7 @@ from quantum_engine import (
     CLINICAL_WEIGHTS_16Q,
     SELECTED_SYMPTOMS_16Q,
     train_quantum_svm,
+    predict_quantum_svm,
 )
 
 
@@ -298,3 +299,37 @@ class TestTrainQuantumSVM:
         for sv in model["train_statevectors"]:
             norm = np.sum(np.abs(sv) ** 2)
             assert np.isclose(norm, 1.0), f"Statevector not normalized: {norm}"
+
+
+# ── predict_quantum_svm ────────────────────────────────────────────────────
+
+class TestPredictQuantumSVM:
+    @pytest.fixture
+    def trained_model(self):
+        """Train a small model for testing."""
+        patients = []
+        for i in range(3):
+            patients.append(({**HEALTHY_PATIENT, "heart_rate": 60 + i * 5}, 0))
+        for i in range(3):
+            patients.append(({**SICK_PATIENT, "heart_rate": 100 + i * 5}, 1))
+        return train_quantum_svm(patients)
+
+    def test_returns_probability(self, trained_model):
+        """Should return a float probability in [0, 1]."""
+        prob = predict_quantum_svm(HEALTHY_PATIENT, trained_model)
+        assert 0.0 <= prob <= 1.0
+
+    def test_sick_higher_than_healthy(self, trained_model):
+        """Sick patient should have higher anomaly probability than healthy."""
+        p_healthy = predict_quantum_svm(HEALTHY_PATIENT, trained_model)
+        p_sick = predict_quantum_svm(SICK_PATIENT, trained_model)
+        assert p_sick > p_healthy, f"Sick ({p_sick}) should score higher than healthy ({p_healthy})"
+
+    def test_different_symptoms_different_scores(self, trained_model):
+        """Patients with different symptoms should get different scores."""
+        jaundice_only = {**HEALTHY_PATIENT, "jaundice": True}
+        headache_only = {**HEALTHY_PATIENT, "headache": True}
+        p_j = predict_quantum_svm(jaundice_only, trained_model)
+        p_h = predict_quantum_svm(headache_only, trained_model)
+        assert not np.isclose(p_j, p_h, atol=1e-4), \
+            f"Jaundice ({p_j}) and headache ({p_h}) should produce different scores"

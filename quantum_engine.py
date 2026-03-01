@@ -417,6 +417,36 @@ def train_quantum_svm(patient_label_pairs):
     }
 
 
+def predict_quantum_svm(raw_dict, model):
+    """
+    Predict anomaly probability for a patient using the trained quantum SVM.
+
+    Args:
+        raw_dict: patient features dict.
+        model: dict returned by train_quantum_svm().
+
+    Returns:
+        float: anomaly probability in [0, 1].
+    """
+    enc = encode_16q(raw_dict)
+    new_sv = get_quantum_signature_16q(enc)
+
+    # Compute fidelity kernel row against all training samples
+    train_svs = model["train_statevectors"]
+    n_train = model["n_train"]
+    K_row = np.empty((1, n_train))
+    for j in range(n_train):
+        K_row[0, j] = np.abs(np.vdot(new_sv, train_svs[j])) ** 2
+
+    # Use sklearn model for calibrated probability
+    svc = model["svc"]
+    proba = svc.predict_proba(K_row)[0]
+
+    # Return probability of class 1 (anomaly/positive)
+    class_1_idx = list(svc.classes_).index(1)
+    return float(proba[class_1_idx])
+
+
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
 
 def signature_to_dict(sig) -> dict:
