@@ -20,6 +20,7 @@ from sklearn.svm import SVC
 from quantum_engine import (
     get_quantum_signature,
     condense_features,
+    generate_mock_dataset,
     compute_kernel_from_params,
     compute_kernel_from_signatures,
     signature_from_dict,
@@ -43,17 +44,64 @@ CLINICS_DIR = "clinics"
 _state: dict = {}
 
 
+def _bootstrap_from_mock():
+    """Generate mock data, encode into quantum signatures, and save."""
+    import pandas as pd
+    csv_path = os.path.join(DATA_DIR, "patients.csv")
+    df = generate_mock_dataset(csv_path, n_patients=30)
+
+    signatures = {}
+    labels = {}
+    params = {}
+    for _, row in df.iterrows():
+        raw_dict = {
+            "heart_rate": float(row.get("heart_rate", 72)),
+            "bp_systolic": float(row.get("bp_systolic", 120)),
+            "bp_diastolic": float(row.get("bp_diastolic", 80)),
+            "temperature": float(row.get("temperature", 37)),
+            "spo2": float(row.get("spo2", 97)),
+            "age": float(row.get("age", 25)),
+            "sex": str(row.get("sex", "M")),
+            "height": float(row.get("height", 170)),
+            "weight": float(row.get("weight", 70)),
+            "fatigue": bool(int(row.get("fatigue", 0))),
+            "weight_loss": bool(int(row.get("weight_loss", 0))),
+            "seizures": bool(int(row.get("seizures", 0))),
+            "dev_delay": bool(int(row.get("dev_delay", 0))),
+            "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
+        }
+        condensed = condense_features(raw_dict)
+        sig = get_quantum_signature(raw_dict)
+        pid = row["patient_id"]
+        signatures[pid] = signature_to_dict(sig)
+        labels[pid] = int(row["diagnosis"])
+        params[pid] = condensed.tolist()
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(SIGS_PATH, "w") as f:
+        json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
+
+    # Clean up temp CSV
+    if os.path.exists(csv_path):
+        os.remove(csv_path)
+
+    return signatures, labels, params
+
+
 def _load_state():
     """Load signatures, labels, params, and pre-train the SVM on startup."""
     if not os.path.exists(SIGS_PATH):
-        return
-
-    with open(SIGS_PATH) as f:
-        stored = json.load(f)
-
-    _state["signatures"] = stored["signatures"]
-    _state["labels"] = stored.get("labels", {})
-    _state["params"] = stored.get("params", {})
+        # Bootstrap: generate mock data and encode
+        sigs, labs, par = _bootstrap_from_mock()
+        _state["signatures"] = sigs
+        _state["labels"] = labs
+        _state["params"] = par
+    else:
+        with open(SIGS_PATH) as f:
+            stored = json.load(f)
+        _state["signatures"] = stored["signatures"]
+        _state["labels"] = stored.get("labels", {})
+        _state["params"] = stored.get("params", {})
 
     # Pre-train local SVM so predictions are instant
     sigs = _state["signatures"]
