@@ -1,6 +1,7 @@
 """Tests for the /predict endpoint with quantum SVM."""
 
 import os
+import time
 import pytest
 from fastapi.testclient import TestClient
 
@@ -48,6 +49,11 @@ def client():
     api._state.clear()
 
     with TestClient(app) as c:
+        # Wait for background SVM training to finish (small dataset, ~2-5s)
+        for _ in range(30):
+            if "svm_model" in api._state:
+                break
+            time.sleep(0.5)
         yield c
 
     # Cleanup: remove the model file created during the test

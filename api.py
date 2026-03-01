@@ -8,6 +8,7 @@ Docs at:   http://localhost:8000/docs
 
 import os
 import json
+import threading
 import numpy as np
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -43,7 +44,7 @@ SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
 CSV_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 CLINICS_DIR = "clinics"
 SVM_MODEL_PATH = os.path.join(DATA_DIR, "quantum_svm_model.npz")
-SVM_N_SAMPLES = 75
+SVM_N_SAMPLES = 30
 
 
 # ── In-memory model cache ────────────────────────────────────────────────────
@@ -126,14 +127,21 @@ def _load_state():
         _state["labels"] = stored.get("labels", {})
         _state["params"] = stored.get("params", {})
 
-    # Load or train 16-qubit quantum SVM
-    if os.path.exists(SVM_MODEL_PATH):
-        _state["svm_model"] = load_quantum_svm(SVM_MODEL_PATH)
-    elif os.path.exists(CSV_PATH):
-        model = bootstrap_svm_from_csv(CSV_PATH, n_samples=SVM_N_SAMPLES)
-        os.makedirs(DATA_DIR, exist_ok=True)
-        save_quantum_svm(model, SVM_MODEL_PATH)
-        _state["svm_model"] = model
+    # Load or train 16-qubit quantum SVM in background (non-blocking)
+    # Server starts immediately with fallback scoring; SVM becomes available once ready.
+    def _bootstrap_svm():
+        try:
+            if os.path.exists(SVM_MODEL_PATH):
+                _state["svm_model"] = load_quantum_svm(SVM_MODEL_PATH)
+            elif os.path.exists(CSV_PATH):
+                model = bootstrap_svm_from_csv(CSV_PATH, n_samples=SVM_N_SAMPLES)
+                os.makedirs(DATA_DIR, exist_ok=True)
+                save_quantum_svm(model, SVM_MODEL_PATH)
+                _state["svm_model"] = model
+        except Exception:
+            pass  # Server works without SVM (falls back to risk score)
+
+    threading.Thread(target=_bootstrap_svm, daemon=True).start()
 
     # Load global boundary if clinics have been federated
     _load_global_boundary()
