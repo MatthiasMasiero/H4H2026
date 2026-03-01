@@ -16,7 +16,7 @@ function Nav() {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const links = ["Process", "Privacy", "Stack"];
+  const links = ["Process", "Privacy", "Stack", "Why Quantum?"];
 
   return (
     <>

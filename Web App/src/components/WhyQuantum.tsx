@@ -186,7 +186,7 @@ function FidelityHeatmap() {
 function WhyQuantum() {
   return (
     <section
-      id="why-quantum"
+      id="why%20quantum?"
       style={{
         padding: "100px clamp(24px, 4vw, 48px) 80px",
         background: "var(--ink)",
