@@ -30,15 +30,25 @@ function AmplitudeChart() {
 
     const { healthy, sick } = vizData.amplitudes;
     const n = healthy.length;
-    const maxVal = Math.max(...healthy, ...sick);
     const barW = w / n;
     const chartH = (h - 24) / 2; // two charts stacked
+
+    // Log scale: log(1 + x/min) normalized per chart
+    const logScale = (arr: number[]) => {
+      const minPos = Math.min(...arr.filter((v) => v > 0)) || 1e-7;
+      const logged = arr.map((v) => (v > 0 ? Math.log(1 + v / minPos) : 0));
+      const maxLog = Math.max(...logged);
+      return logged.map((v) => v / (maxLog || 1));
+    };
+
+    const healthyScaled = logScale(healthy);
+    const sickScaled = logScale(sick);
 
     ctx.clearRect(0, 0, w, h);
 
     // Healthy (top)
     for (let i = 0; i < n; i++) {
-      const val = healthy[i] / maxVal;
+      const val = healthyScaled[i];
       const barH = val * (chartH - 8);
       const alpha = 0.3 + val * 0.7;
       ctx.fillStyle = `rgba(156, 151, 144, ${alpha})`;
@@ -47,7 +57,7 @@ function AmplitudeChart() {
 
     // Sick (bottom)
     for (let i = 0; i < n; i++) {
-      const val = sick[i] / maxVal;
+      const val = sickScaled[i];
       const barH = val * (chartH - 8);
       const alpha = 0.3 + val * 0.7;
       ctx.fillStyle = `rgba(199, 64, 45, ${alpha})`;
