@@ -72,21 +72,19 @@ High specificity (92%) means fewer false alarms — critical for resource-constr
 
 ## Architecture
 
-```
-┌──────────────────────┐         ┌──────────────────────────────────┐
-│                      │  POST   │                                  │
-│   React 19 Frontend  │────────>│     FastAPI Backend (Railway)    │
-│   (Vercel)           │ /predict│                                  │
-│                      │<────────│  quantum_engine.py               │
-│   - Diagnosis form   │  JSON   │    ├─ ZZFeatureMap encoding      │
-│   - Validation page  │         │    ├─ Fidelity kernel            │
-│   - Live demo        │         │    ├─ Synthetic training data    │
-│                      │         │    └─ Secure data shredding      │
-└──────────────────────┘         │                                  │
-                                 │  aggregator.py                   │
-                                 │    └─ Federated SVM across       │
-                                 │      3 simulated clinics         │
-                                 └──────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph Frontend ["React 19 Frontend (Vercel)"]
+        F1[Diagnosis form]
+        F2[Validation page]
+        F3[Live demo]
+    end
+    subgraph Backend ["FastAPI Backend (Railway)"]
+        Q["quantum_engine.py\nZZFeatureMap encoding\nFidelity kernel\nSynthetic training data\nSecure data shredding"]
+        A["aggregator.py\nFederated SVM across\n3 simulated clinics"]
+    end
+    Frontend -- "POST /predict" --> Backend
+    Backend -- "JSON response" --> Frontend
 ```
 
 ### Tech Stack
