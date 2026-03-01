@@ -451,10 +451,12 @@ def predict_quantum_svm(raw_dict, model):
     mean_fid_sick = fidelities[sick_mask].mean() if sick_mask.any() else 0.0
 
     # Anomaly probability from relative similarity to sick cluster
-    total = mean_fid_healthy + mean_fid_sick
+    # Laplace-style smoothing (ε) prevents collapsing to exactly 0% or 100%
+    eps = 0.02
+    total = mean_fid_healthy + mean_fid_sick + 2 * eps
     if total < 1e-12:
         return 0.5
-    return float(mean_fid_sick / total)
+    return float((mean_fid_sick + eps) / total)
 
 
 # ── Save / Load Quantum SVM ────────────────────────────────────────────────
