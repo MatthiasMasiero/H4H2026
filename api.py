@@ -119,15 +119,15 @@ app.add_middleware(
 # ── Request / Response Models ────────────────────────────────────────────────
 
 class PatientInput(BaseModel):
-    heart_rate_bpm: float = Field(..., ge=40, le=140, description="Heart rate in bpm")
-    systolic_bp_mmHg: float = Field(..., ge=80, le=200, description="Systolic blood pressure in mmHg")
-    diastolic_bp_mmHg: Optional[float] = Field(None, ge=30, le=130, description="Diastolic blood pressure in mmHg")
-    temperature_c: float = Field(..., ge=35, le=40, description="Body temperature in Celsius")
-    oxygen_saturation_pct: float = Field(..., ge=85, le=100, description="SpO2 percentage")
-    age_years: Optional[int] = Field(None, ge=0, le=120)
-    sex: Optional[str] = Field(None, pattern="^[MF]$")
-    height_cm: Optional[float] = Field(None, ge=40, le=220)
-    weight_kg: Optional[float] = Field(None, ge=1, le=300)
+    heart_rate_bpm: float
+    systolic_bp_mmHg: float
+    diastolic_bp_mmHg: Optional[float] = None
+    temperature_c: float
+    oxygen_saturation_pct: float
+    age_years: Optional[int] = None
+    sex: Optional[str] = None
+    height_cm: Optional[float] = None
+    weight_kg: Optional[float] = None
     fatigue: Optional[bool] = False
     weight_loss: Optional[bool] = False
     seizures: Optional[bool] = False
@@ -175,42 +175,45 @@ async def predict(patient: PatientInput):
             detail="No trained model available. Run the Streamlit app to encode patients first.",
         )
 
-    # Quantum encode the 4 vitals
-    vitals = [
-        patient.heart_rate_bpm,
-        patient.systolic_bp_mmHg,
-        patient.temperature_c,
-        patient.oxygen_saturation_pct,
-    ]
-    sig = get_quantum_signature(vitals)
-    feature_vec = np.abs(sig).reshape(1, -1)
+    try:
+        # Quantum encode the 4 vitals
+        vitals = [
+            patient.heart_rate_bpm,
+            patient.systolic_bp_mmHg,
+            patient.temperature_c,
+            patient.oxygen_saturation_pct,
+        ]
+        sig = get_quantum_signature(vitals)
+        feature_vec = np.abs(sig).reshape(1, -1)
 
-    # Predict using global boundary if available, else local SVM
-    if "global_weights" in _state:
-        w = _state["global_weights"]
-        b = _state["global_intercept"]
-        decision = float(feature_vec @ w + b)
-        anomaly_prob = 1.0 / (1.0 + np.exp(-decision))
-        healthy_prob = 1.0 - anomaly_prob
-        prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
-        model_used = "federated_global_boundary"
-    else:
-        model = _state["model"]
-        proba = model.predict_proba(feature_vec)[0]
-        pred = model.predict(feature_vec)[0]
-        class_order = model.classes_
-        healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
-        anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
-        prediction = "anomaly" if pred == 1 else "healthy"
-        model_used = "local_svm"
+        # Predict using global boundary if available, else local SVM
+        if "global_weights" in _state:
+            w = np.asarray(_state["global_weights"]).flatten()
+            b = float(_state["global_intercept"])
+            decision = float(feature_vec @ w + b)
+            anomaly_prob = 1.0 / (1.0 + np.exp(-decision))
+            healthy_prob = 1.0 - anomaly_prob
+            prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
+            model_used = "federated_global_boundary"
+        else:
+            model = _state["model"]
+            proba = model.predict_proba(feature_vec)[0]
+            pred = model.predict(feature_vec)[0]
+            class_order = model.classes_
+            healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
+            anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
+            prediction = "anomaly" if pred == 1 else "healthy"
+            model_used = "local_svm"
 
-    return PredictionResult(
-        prediction=prediction,
-        anomaly_probability=round(anomaly_prob, 4),
-        healthy_probability=round(healthy_prob, 4),
-        model_used=model_used,
-        quantum_signature_dim=len(sig),
-    )
+        return PredictionResult(
+            prediction=prediction,
+            anomaly_probability=round(anomaly_prob, 4),
+            healthy_probability=round(healthy_prob, 4),
+            model_used=model_used,
+            quantum_signature_dim=len(sig),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.post("/encode")
