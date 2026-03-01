@@ -419,7 +419,11 @@ def train_quantum_svm(patient_label_pairs):
 
 def predict_quantum_svm(raw_dict, model):
     """
-    Predict anomaly probability for a patient using the trained quantum SVM.
+    Predict anomaly probability for a patient using quantum fidelity kernel.
+
+    Computes mean fidelity to healthy and sick training clusters, then
+    derives probability from the ratio. This bypasses SVC's Platt scaling
+    which compresses probabilities toward 0.5 with small training sets.
 
     Args:
         raw_dict: patient features dict.
@@ -431,20 +435,26 @@ def predict_quantum_svm(raw_dict, model):
     enc = encode_16q(raw_dict)
     new_sv = get_quantum_signature_16q(enc)
 
-    # Compute fidelity kernel row against all training samples
     train_svs = model["train_statevectors"]
-    n_train = model["n_train"]
-    K_row = np.empty((1, n_train))
-    for j in range(n_train):
-        K_row[0, j] = np.abs(np.vdot(new_sv, train_svs[j])) ** 2
+    train_labels = model["train_labels"]
 
-    # Use sklearn model for calibrated probability
-    svc = model["svc"]
-    proba = svc.predict_proba(K_row)[0]
+    # Compute fidelity to each training sample
+    fidelities = np.array([
+        np.abs(np.vdot(new_sv, sv)) ** 2 for sv in train_svs
+    ])
 
-    # Return probability of class 1 (anomaly/positive)
-    class_1_idx = list(svc.classes_).index(1)
-    return float(proba[class_1_idx])
+    # Mean fidelity to healthy (label=0) and sick (label=1) clusters
+    healthy_mask = train_labels == 0
+    sick_mask = train_labels == 1
+
+    mean_fid_healthy = fidelities[healthy_mask].mean() if healthy_mask.any() else 0.0
+    mean_fid_sick = fidelities[sick_mask].mean() if sick_mask.any() else 0.0
+
+    # Anomaly probability from relative similarity to sick cluster
+    total = mean_fid_healthy + mean_fid_sick
+    if total < 1e-12:
+        return 0.5
+    return float(mean_fid_sick / total)
 
 
 # ── Save / Load Quantum SVM ────────────────────────────────────────────────
