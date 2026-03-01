@@ -10,7 +10,6 @@ from quantum_engine import (
     get_quantum_signature,
     condense_features,
     compute_kernel_from_signatures,
-    generate_mock_dataset,
     shred_data,
     signature_to_dict,
     signature_from_dict,
@@ -25,16 +24,24 @@ from quantum_engine import (
 
 HEALTHY_PATIENT = {
     "heart_rate": 72, "bp_systolic": 120, "bp_diastolic": 78,
-    "temperature": 37.0, "spo2": 97, "age": 30, "sex": "M",
-    "height": 175, "weight": 70, "fatigue": False, "weight_loss": False,
-    "seizures": False, "dev_delay": False, "muscle_weakness": False,
+    "age": 30, "sex": "M", "wbc": 7000, "platelets": 250000,
+    "fatigue": False, "muscle_weakness": False, "weight_loss": False,
+    "seizures": False, "dev_delay": False, "headache": False,
+    "chills": False, "rigors": False, "nausea": False,
+    "diarrhoea": False, "cough": False, "bleeding": False,
+    "prostration": False, "oliguria": False, "anuria": False,
+    "conjunctival_suffusion": False, "muscle_tenderness": False,
 }
 
 SICK_PATIENT = {
     "heart_rate": 110, "bp_systolic": 160, "bp_diastolic": 105,
-    "temperature": 39.0, "spo2": 90, "age": 45, "sex": "F",
-    "height": 160, "weight": 55, "fatigue": True, "weight_loss": True,
-    "seizures": True, "dev_delay": True, "muscle_weakness": True,
+    "age": 45, "sex": "F", "wbc": 25000, "platelets": 30000,
+    "fatigue": True, "muscle_weakness": True, "weight_loss": True,
+    "seizures": True, "dev_delay": True, "headache": True,
+    "chills": True, "rigors": True, "nausea": True,
+    "diarrhoea": True, "cough": True, "bleeding": True,
+    "prostration": True, "oliguria": True, "anuria": True,
+    "conjunctival_suffusion": True, "muscle_tenderness": True,
 }
 
 
@@ -61,13 +68,12 @@ class TestCondenseFeatures:
         assert np.all(result >= 0.0) and np.all(result <= np.pi + 1e-10)
 
     def test_binary_feature_behavior(self):
-        """Binary features (seizures, etc.) should produce 0 or pi contribution."""
+        """Binary composite qubits (indices 3-6) should be 0 with no symptoms, pi with all."""
         no_symptoms = condense_features(HEALTHY_PATIENT)
         all_symptoms = condense_features(SICK_PATIENT)
-        # Neurological qubit (index 5) should be 0 when no seizures/dev_delay
-        assert np.isclose(no_symptoms[5], 0.0)
-        # With all symptoms on, neurological should be pi
-        assert np.isclose(all_symptoms[5], np.pi)
+        for idx in [3, 4, 5, 6]:
+            assert np.isclose(no_symptoms[idx], 0.0), f"Qubit {idx} should be 0 with no symptoms"
+            assert np.isclose(all_symptoms[idx], np.pi), f"Qubit {idx} should be pi with all symptoms"
 
     def test_different_patients_produce_different_features(self):
         """Healthy and sick patients should have different condensed features."""
@@ -163,30 +169,6 @@ class TestKernel:
                 get_quantum_signature({"heart_rate": 60, "bp_systolic": 100})]
         K = compute_kernel_from_signatures(sigs)
         assert np.all(K >= -1e-10) and np.all(K <= 1.0 + 1e-10)
-
-
-# ── generate_mock_dataset ─────────────────────────────────────────────────
-
-class TestMockDataset:
-    def test_generates_csv(self, tmp_path):
-        path = str(tmp_path / "mock.csv")
-        df = generate_mock_dataset(path, n_patients=10)
-        assert os.path.isfile(path)
-        assert len(df) == 10
-        # Check all 14 feature columns + patient_id + diagnosis
-        expected_cols = [
-            "patient_id", "heart_rate", "bp_systolic", "bp_diastolic",
-            "temperature", "spo2", "age", "sex", "height", "weight",
-            "fatigue", "weight_loss", "seizures", "dev_delay",
-            "muscle_weakness", "diagnosis",
-        ]
-        for col in expected_cols:
-            assert col in df.columns, f"Missing column: {col}"
-
-    def test_label_distribution(self, tmp_path):
-        path = str(tmp_path / "mock.csv")
-        df = generate_mock_dataset(path, n_patients=20)
-        assert set(df["diagnosis"].unique()) == {0, 1}
 
 
 # ── shred_data ────────────────────────────────────────────────────────────

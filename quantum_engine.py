@@ -22,18 +22,18 @@ except ImportError:
 
 NUM_QUBITS = 8
 FEATURE_COLS = [
-    "cardiac", "vascular", "respiratory", "metabolic",
-    "body_comp", "neurological", "musculoskeletal", "demographics",
+    "cardiac", "vascular", "hematologic", "organ_damage",
+    "systemic", "gi_respiratory", "musculoskeletal", "demographics",
 ]
 
 # Ranges for the 8 condensed composite features (all map to [0, pi])
 CLINICAL_RANGES = {
     "cardiac":         (0.0, np.pi),
     "vascular":        (0.0, np.pi),
-    "respiratory":     (0.0, np.pi),
-    "metabolic":       (0.0, np.pi),
-    "body_comp":       (0.0, np.pi),
-    "neurological":    (0.0, np.pi),
+    "hematologic":     (0.0, np.pi),
+    "organ_damage":    (0.0, np.pi),
+    "systemic":        (0.0, np.pi),
+    "gi_respiratory":  (0.0, np.pi),
     "musculoskeletal": (0.0, np.pi),
     "demographics":    (0.0, np.pi),
 }
@@ -43,12 +43,9 @@ RAW_CLINICAL_RANGES = {
     "heart_rate":   (40.0, 140.0),    # bpm
     "bp_systolic":  (80.0, 200.0),    # mmHg
     "bp_diastolic": (40.0, 130.0),    # mmHg
-    "temperature":  (35.0, 40.0),     # Celsius
-    "spo2":         (85.0, 100.0),    # percent
     "age":          (0.0, 100.0),     # years
-    "height":       (40.0, 200.0),    # cm
-    "weight":       (2.0, 150.0),     # kg
-    "bmi":          (10.0, 50.0),     # kg/m^2
+    "wbc":          (500.0, 35000.0), # cells/uL
+    "platelets":    (5000.0, 1000000.0),  # cells/uL
 }
 
 
@@ -69,48 +66,71 @@ def _normalize_raw(value, feature_name):
 
 def condense_features(raw_dict) -> np.ndarray:
     """
-    Condense 14 raw patient features into 8 composite features for 8-qubit encoding.
+    Condense 24 raw leptospirosis patient features into 8 composite features
+    for 8-qubit encoding.
 
     Args:
-        raw_dict: dict with keys like 'heart_rate', 'bp_systolic', 'temperature',
-                  'spo2', 'bp_diastolic', 'age', 'sex', 'height', 'weight',
-                  'fatigue', 'weight_loss', 'seizures', 'dev_delay', 'muscle_weakness'.
+        raw_dict: dict with keys: heart_rate, bp_systolic, bp_diastolic, age, sex,
+                  wbc, platelets, and 17 binary symptoms (fever/fatigue, muscle_weakness,
+                  weight_loss, seizures, dev_delay, headache, chills, rigors, nausea,
+                  diarrhoea, cough, bleeding, prostration, oliguria, anuria,
+                  conjunctival_suffusion, muscle_tenderness).
                   Missing keys use sensible clinical defaults.
 
     Returns:
         np.ndarray of shape (8,) with values in [0, pi].
     """
-    # Extract with defaults
+    # Extract continuous features with defaults
     hr = float(raw_dict.get("heart_rate", 72.0))
     sbp = float(raw_dict.get("bp_systolic", 120.0))
     dbp = float(raw_dict.get("bp_diastolic", 80.0))
-    temp = float(raw_dict.get("temperature", 37.0))
-    spo2 = float(raw_dict.get("spo2", 97.0))
     age = float(raw_dict.get("age", 25.0))
+    wbc = float(raw_dict.get("wbc", 7000.0))
+    platelets = float(raw_dict.get("platelets", 250000.0))
+
     sex_raw = raw_dict.get("sex", "M")
     sex = 1.0 if str(sex_raw).upper() in ("F", "FEMALE") else 0.0
-    height = float(raw_dict.get("height", 170.0))
-    weight = float(raw_dict.get("weight", 70.0))
-    fatigue = 1.0 if raw_dict.get("fatigue", False) else 0.0
-    weight_loss = 1.0 if raw_dict.get("weight_loss", False) else 0.0
-    seizures = 1.0 if raw_dict.get("seizures", False) else 0.0
-    dev_delay = 1.0 if raw_dict.get("dev_delay", False) else 0.0
-    muscle_weakness = 1.0 if raw_dict.get("muscle_weakness", False) else 0.0
 
-    # Compute BMI
-    height_m = max(height / 100.0, 0.01)
-    bmi = weight / (height_m ** 2)
+    # Extract binary symptoms (0.0 or 1.0)
+    def _bin(key):
+        return 1.0 if raw_dict.get(key, False) else 0.0
+
+    jaundice     = _bin("fatigue")       # fatigue column maps to jaundice in lepto CSV
+    muscle_weak  = _bin("muscle_weakness")
+    oliguria     = _bin("oliguria")
+    anuria       = _bin("anuria")
+    fever        = _bin("fatigue")       # fever signal from fatigue column
+    chills       = _bin("chills")
+    rigors       = _bin("rigors")
+    conj_suff    = _bin("conjunctival_suffusion")
+    nausea       = _bin("nausea")
+    vomiting     = _bin("weight_loss")   # weight_loss column maps to vomiting
+    diarrhoea    = _bin("diarrhoea")
+    cough        = _bin("cough")
+    muscle_pain  = _bin("muscle_weakness")
+    muscle_tend  = _bin("muscle_tenderness")
+    prostration  = _bin("prostration")
+    headache     = _bin("headache")
+    bleeding     = _bin("bleeding")
 
     # Build 8 composite features
     condensed = np.array([
-        0.5 * _normalize_raw(hr, "heart_rate") + 0.5 * _normalize_raw(sbp, "bp_systolic"),       # cardiac
-        _normalize_raw(dbp, "bp_diastolic"),                                                       # vascular
-        _normalize_raw(spo2, "spo2"),                                                              # respiratory
-        0.7 * _normalize_raw(temp, "temperature") + 0.3 * (weight_loss * np.pi),                   # metabolic
-        _normalize_raw(bmi, "bmi"),                                                                # body_comp
-        0.5 * (seizures * np.pi) + 0.5 * (dev_delay * np.pi),                                     # neurological
-        0.5 * (muscle_weakness * np.pi) + 0.5 * (fatigue * np.pi),                                 # musculoskeletal
-        0.7 * _normalize_raw(age, "age") + 0.3 * (sex * np.pi),                                   # demographics
+        # Q0: cardiac
+        0.6 * _normalize_raw(hr, "heart_rate") + 0.4 * _normalize_raw(sbp, "bp_systolic"),
+        # Q1: vascular (platelets inverted — low platelets = disease)
+        0.6 * _normalize_raw(dbp, "bp_diastolic") + 0.4 * (np.pi - _normalize_raw(platelets, "platelets")),
+        # Q2: hematologic
+        _normalize_raw(wbc, "wbc"),
+        # Q3: organ_damage
+        (jaundice + oliguria + anuria) / 3.0 * np.pi,
+        # Q4: systemic
+        (fever + chills + rigors + conj_suff) / 4.0 * np.pi,
+        # Q5: gi_respiratory
+        (nausea + vomiting + diarrhoea + cough) / 4.0 * np.pi,
+        # Q6: musculoskeletal
+        (muscle_pain + muscle_tend + prostration + headache) / 4.0 * np.pi,
+        # Q7: demographics
+        0.6 * _normalize_raw(age, "age") + 0.2 * (sex * np.pi) + 0.2 * (bleeding * np.pi),
     ], dtype=np.float64)
 
     return np.clip(condensed, 0.0, np.pi)
@@ -251,51 +271,6 @@ def shred_data(filepath) -> None:
 
     os.remove(filepath)
     return True
-
-
-# ── Mock Data Generator ────────────────────────────────────────────────────
-
-def generate_mock_dataset(filepath="data/patients.csv", n_patients=30) -> "pd.DataFrame":
-    """
-    Create a synthetic 30-patient CSV with all 14 clinical features
-    and a binary diagnosis label (0 = healthy, 1 = anomaly).
-
-    Healthy patients have normal vitals; anomalous patients show
-    elevated heart rate / blood pressure, reduced SpO2, and more symptoms.
-    """
-    import pandas as pd
-
-    rng = np.random.default_rng(42)
-    n_h = int(n_patients * 0.6)   # 18 healthy
-    n_a = n_patients - n_h        # 12 anomaly
-
-    data = pd.DataFrame({
-        "patient_id":    [f"P{i+1:03d}" for i in range(n_patients)],
-        "heart_rate":    np.concatenate([rng.normal(72, 8, n_h),   rng.normal(95, 15, n_a)]),
-        "bp_systolic":   np.concatenate([rng.normal(118, 10, n_h), rng.normal(145, 18, n_a)]),
-        "bp_diastolic":  np.concatenate([rng.normal(78, 8, n_h),   rng.normal(95, 12, n_a)]),
-        "temperature":   np.concatenate([rng.normal(36.8, 0.3, n_h), rng.normal(38.2, 0.6, n_a)]),
-        "spo2":          np.concatenate([rng.normal(97.5, 1.0, n_h), rng.normal(93.0, 2.5, n_a)]),
-        "age":           np.concatenate([rng.integers(5, 60, n_h), rng.integers(10, 70, n_a)]).astype(float),
-        "sex":           rng.choice(["M", "F"], n_patients).tolist(),
-        "height":        np.concatenate([rng.normal(160, 20, n_h), rng.normal(155, 25, n_a)]),
-        "weight":        np.concatenate([rng.normal(65, 12, n_h),  rng.normal(60, 15, n_a)]),
-        "fatigue":       np.concatenate([rng.choice([0, 1], n_h, p=[0.9, 0.1]),
-                                         rng.choice([0, 1], n_a, p=[0.4, 0.6])]),
-        "weight_loss":   np.concatenate([rng.choice([0, 1], n_h, p=[0.95, 0.05]),
-                                         rng.choice([0, 1], n_a, p=[0.5, 0.5])]),
-        "seizures":      np.concatenate([rng.choice([0, 1], n_h, p=[0.98, 0.02]),
-                                         rng.choice([0, 1], n_a, p=[0.7, 0.3])]),
-        "dev_delay":     np.concatenate([rng.choice([0, 1], n_h, p=[0.97, 0.03]),
-                                         rng.choice([0, 1], n_a, p=[0.75, 0.25])]),
-        "muscle_weakness": np.concatenate([rng.choice([0, 1], n_h, p=[0.92, 0.08]),
-                                           rng.choice([0, 1], n_a, p=[0.45, 0.55])]),
-        "diagnosis":     [0] * n_h + [1] * n_a,
-    }).sample(frac=1, random_state=42).reset_index(drop=True)
-
-    os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
-    data.to_csv(filepath, index=False)
-    return data
 
 
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────

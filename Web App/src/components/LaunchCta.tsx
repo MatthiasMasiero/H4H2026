@@ -7,19 +7,28 @@ const API_URL = import.meta.env.VITE_API_URL || "https://h4h2026-production.up.r
 interface PatientData {
     age_years: number;
     sex: string;
-    height_cm: number;
-    weight_kg: number;
-    bmi: number;
     heart_rate_bpm: number;
-    temperature_c: number;
     systolic_bp_mmHg: number;
     diastolic_bp_mmHg: number;
-    oxygen_saturation_pct: number;
+    wbc: number;
+    platelets: number;
     fatigue: boolean;
+    muscle_weakness: boolean;
     weight_loss: boolean;
     seizures: boolean;
     developmental_delay: boolean;
-    muscle_weak: boolean;
+    headache: boolean;
+    chills: boolean;
+    rigors: boolean;
+    nausea: boolean;
+    diarrhoea: boolean;
+    cough: boolean;
+    bleeding: boolean;
+    prostration: boolean;
+    oliguria: boolean;
+    anuria: boolean;
+    conjunctival_suffusion: boolean;
+    muscle_tenderness: boolean;
 }
 
 interface PredictionResult {
@@ -33,37 +42,55 @@ interface PredictionResult {
 const HEALTHY_PRESET: PatientData = {
     age_years: 28,
     sex: "male",
-    height_cm: 175,
-    weight_kg: 72,
-    bmi: 23.5,
     heart_rate_bpm: 68,
-    temperature_c: 36.8,
     systolic_bp_mmHg: 118,
     diastolic_bp_mmHg: 76,
-    oxygen_saturation_pct: 98,
+    wbc: 7000,
+    platelets: 250000,
     fatigue: false,
+    muscle_weakness: false,
     weight_loss: false,
     seizures: false,
     developmental_delay: false,
-    muscle_weak: false,
+    headache: false,
+    chills: false,
+    rigors: false,
+    nausea: false,
+    diarrhoea: false,
+    cough: false,
+    bleeding: false,
+    prostration: false,
+    oliguria: false,
+    anuria: false,
+    conjunctival_suffusion: false,
+    muscle_tenderness: false,
 };
 
 const SICK_PRESET: PatientData = {
-    age_years: 52,
+    age_years: 45,
     sex: "female",
-    height_cm: 160,
-    weight_kg: 51,
-    bmi: 19.9,
-    heart_rate_bpm: 115,
-    temperature_c: 39.2,
-    systolic_bp_mmHg: 165,
-    diastolic_bp_mmHg: 108,
-    oxygen_saturation_pct: 89,
+    heart_rate_bpm: 110,
+    systolic_bp_mmHg: 160,
+    diastolic_bp_mmHg: 105,
+    wbc: 25000,
+    platelets: 30000,
     fatigue: true,
+    muscle_weakness: true,
     weight_loss: true,
-    seizures: true,
-    developmental_delay: true,
-    muscle_weak: true,
+    seizures: false,
+    developmental_delay: false,
+    headache: true,
+    chills: true,
+    rigors: true,
+    nausea: true,
+    diarrhoea: true,
+    cough: true,
+    bleeding: true,
+    prostration: true,
+    oliguria: true,
+    anuria: false,
+    conjunctival_suffusion: true,
+    muscle_tenderness: true,
 };
 
 function randomBetween(min: number, max: number, decimals = 0): number {
@@ -72,24 +99,31 @@ function randomBetween(min: number, max: number, decimals = 0): number {
 }
 
 function generateRandomPatient(): PatientData {
-    const height = randomBetween(50, 195);
-    const weight = randomBetween(8, 120, 1);
     return {
-        age_years: randomBetween(1, 80),
+        age_years: randomBetween(5, 70),
         sex: Math.random() > 0.5 ? "male" : "female",
-        height_cm: height,
-        weight_kg: weight,
-        bmi: Number((weight / (height / 100) ** 2).toFixed(1)),
         heart_rate_bpm: randomBetween(50, 135),
-        temperature_c: randomBetween(355, 395) / 10,
         systolic_bp_mmHg: randomBetween(85, 185),
         diastolic_bp_mmHg: randomBetween(40, 120),
-        oxygen_saturation_pct: randomBetween(860, 1000) / 10,
+        wbc: randomBetween(2000, 30000),
+        platelets: randomBetween(10000, 500000),
         fatigue: Math.random() < 0.3,
-        weight_loss: Math.random() < 0.25,
-        seizures: Math.random() < 0.15,
-        developmental_delay: Math.random() < 0.1,
-        muscle_weak: Math.random() < 0.25,
+        muscle_weakness: Math.random() < 0.3,
+        weight_loss: Math.random() < 0.2,
+        seizures: Math.random() < 0.05,
+        developmental_delay: Math.random() < 0.05,
+        headache: Math.random() < 0.4,
+        chills: Math.random() < 0.4,
+        rigors: Math.random() < 0.3,
+        nausea: Math.random() < 0.3,
+        diarrhoea: Math.random() < 0.2,
+        cough: Math.random() < 0.2,
+        bleeding: Math.random() < 0.15,
+        prostration: Math.random() < 0.2,
+        oliguria: Math.random() < 0.15,
+        anuria: Math.random() < 0.1,
+        conjunctival_suffusion: Math.random() < 0.2,
+        muscle_tenderness: Math.random() < 0.3,
     };
 }
 
@@ -97,19 +131,28 @@ function PatientForm() {
     const [form, setForm] = useState<PatientData>({
         age_years: 0,
         sex: "",
-        height_cm: 0,
-        weight_kg: 0,
-        bmi: 0,
         heart_rate_bpm: 0,
-        temperature_c: 0,
         systolic_bp_mmHg: 0,
         diastolic_bp_mmHg: 0,
-        oxygen_saturation_pct: 0,
+        wbc: 0,
+        platelets: 0,
         fatigue: false,
+        muscle_weakness: false,
         weight_loss: false,
         seizures: false,
         developmental_delay: false,
-        muscle_weak: false,
+        headache: false,
+        chills: false,
+        rigors: false,
+        nausea: false,
+        diarrhoea: false,
+        cough: false,
+        bleeding: false,
+        prostration: false,
+        oliguria: false,
+        anuria: false,
+        conjunctival_suffusion: false,
+        muscle_tenderness: false,
     });
 
     const [result, setResult] = useState<PredictionResult | null>(null);
@@ -148,17 +191,27 @@ function PatientForm() {
                     heart_rate_bpm: form.heart_rate_bpm,
                     systolic_bp_mmHg: form.systolic_bp_mmHg,
                     diastolic_bp_mmHg: form.diastolic_bp_mmHg,
-                    temperature_c: form.temperature_c,
-                    oxygen_saturation_pct: form.oxygen_saturation_pct,
                     age_years: form.age_years,
                     sex: form.sex === "male" ? "M" : form.sex === "female" ? "F" : undefined,
-                    height_cm: form.height_cm || undefined,
-                    weight_kg: form.weight_kg || undefined,
+                    wbc: form.wbc,
+                    platelets: form.platelets,
                     fatigue: form.fatigue,
+                    muscle_weakness: form.muscle_weakness,
                     weight_loss: form.weight_loss,
                     seizures: form.seizures,
                     developmental_delay: form.developmental_delay,
-                    muscle_weakness: form.muscle_weak,
+                    headache: form.headache,
+                    chills: form.chills,
+                    rigors: form.rigors,
+                    nausea: form.nausea,
+                    diarrhoea: form.diarrhoea,
+                    cough: form.cough,
+                    bleeding: form.bleeding,
+                    prostration: form.prostration,
+                    oliguria: form.oliguria,
+                    anuria: form.anuria,
+                    conjunctival_suffusion: form.conjunctival_suffusion,
+                    muscle_tenderness: form.muscle_tenderness,
                 }),
             });
 
@@ -263,14 +316,11 @@ function PatientForm() {
                         {/* Numeric inputs with labels */}
                         {([
                             { name: "age_years", label: "Age (years)" },
-                            { name: "height_cm", label: "Height (cm)" },
-                            { name: "weight_kg", label: "Weight (kg)" },
-                            { name: "bmi", label: "BMI" },
                             { name: "heart_rate_bpm", label: "Heart Rate (bpm)" },
-                            { name: "temperature_c", label: "Temperature (°C)" },
                             { name: "systolic_bp_mmHg", label: "Systolic BP (mmHg)" },
                             { name: "diastolic_bp_mmHg", label: "Diastolic BP (mmHg)" },
-                            { name: "oxygen_saturation_pct", label: "Oxygen Saturation (%)" },
+                            { name: "wbc", label: "WBC (cells/uL)" },
+                            { name: "platelets", label: "Platelets (cells/uL)" },
                         ] as { name: keyof PatientData; label: string }[]).map((field) => (
                             <div key={field.name} style={{ display: "flex", flexDirection: "column", maxWidth: '35vw' }}>
                                 <label
@@ -331,11 +381,23 @@ function PatientForm() {
                                 Symptoms
                             </label>
                         {([
-                            { name: "fatigue", label: "Fatigue" },
-                            { name: "weight_loss", label: "Weight Loss" },
+                            { name: "fatigue", label: "Jaundice/Fever" },
+                            { name: "muscle_weakness", label: "Muscle Pain" },
+                            { name: "weight_loss", label: "Vomiting" },
+                            { name: "headache", label: "Headache" },
+                            { name: "chills", label: "Chills" },
+                            { name: "rigors", label: "Rigors" },
+                            { name: "nausea", label: "Nausea" },
+                            { name: "diarrhoea", label: "Diarrhoea" },
+                            { name: "cough", label: "Cough" },
+                            { name: "bleeding", label: "Bleeding" },
+                            { name: "prostration", label: "Prostration" },
+                            { name: "oliguria", label: "Oliguria" },
+                            { name: "anuria", label: "Anuria" },
+                            { name: "conjunctival_suffusion", label: "Conj. Suffusion" },
+                            { name: "muscle_tenderness", label: "Muscle Tenderness" },
                             { name: "seizures", label: "Seizures" },
-                            { name: "developmental_delay", label: "Developmental Delay" },
-                            { name: "muscle_weak", label: "Muscle Weakness" },
+                            { name: "developmental_delay", label: "Dev. Delay" },
                         ] as { name: keyof PatientData; label: string }[]).map((field) => (
                             <label
                                 key={field.name}

@@ -14,7 +14,6 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from quantum_engine import (
-    generate_mock_dataset,
     get_quantum_signature,
     condense_features,
     compute_kernel,
@@ -37,21 +36,13 @@ from quantum_therapeutics.rna_engine import predict_structure
 # ── Paths & Constants ───────────────────────────────────────────────────────
 
 DATA_DIR = "data"
-DATA_PATH = os.path.join(DATA_DIR, "patients.csv")
+DATA_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
 CLINICS_DIR = "clinics"
 CLINIC_NAMES = ["Clinic_A", "Clinic_B", "Clinic_C"]
 
 # Map alternate CSV column names to the internal names the engine expects
 COLUMN_ALIASES = {
-    "heart_rate_bpm": "heart_rate",
-    "systolic_bp_mmHg": "bp_systolic",
-    "diastolic_bp_mmHg": "bp_diastolic",
-    "temperature_c": "temperature",
-    "oxygen_saturation_pct": "spo2",
-    "age_years": "age",
-    "height_cm": "height",
-    "weight_kg": "weight",
     "has_target_disease": "diagnosis",
 }
 
@@ -138,8 +129,6 @@ with st.sidebar:
         # Clean up saved signatures
         if os.path.exists(SIGS_PATH):
             os.remove(SIGS_PATH)
-        # Regenerate mock data
-        generate_mock_dataset(DATA_PATH)
         st.rerun()
 
 
@@ -152,18 +141,21 @@ st.caption(
 )
 
 
-# ── Ensure Mock Data Exists on First Run ────────────────────────────────────
+# ── Ensure Patient Data Exists ──────────────────────────────────────────────
 
 if not os.path.exists(DATA_PATH) and not st.session_state["data_shredded"]:
-    generate_mock_dataset(DATA_PATH)
+    st.warning("Leptospirosis dataset not found. Place patients_lepto_clean.csv in the data/ directory.")
 
 
 # ── CSV Upload ─────────────────────────────────────────────────────────────
 
 REQUIRED_COLS = {
     "patient_id", "heart_rate", "bp_systolic", "bp_diastolic",
-    "temperature", "spo2", "age", "sex", "height", "weight",
-    "fatigue", "weight_loss", "seizures", "dev_delay", "muscle_weakness",
+    "age", "sex", "wbc", "platelets",
+    "fatigue", "muscle_weakness", "weight_loss", "seizures", "dev_delay",
+    "headache", "chills", "rigors", "nausea", "diarrhoea", "cough",
+    "bleeding", "prostration", "oliguria", "anuria",
+    "conjunctival_suffusion", "muscle_tenderness",
     "diagnosis",
 }
 
@@ -215,17 +207,27 @@ with col1:
                     "heart_rate": float(row.get("heart_rate", 72)),
                     "bp_systolic": float(row.get("bp_systolic", 120)),
                     "bp_diastolic": float(row.get("bp_diastolic", 80)),
-                    "temperature": float(row.get("temperature", 37)),
-                    "spo2": float(row.get("spo2", 97)),
                     "age": float(row.get("age", 25)),
                     "sex": str(row.get("sex", "M")),
-                    "height": float(row.get("height", 170)),
-                    "weight": float(row.get("weight", 70)),
+                    "wbc": float(row.get("wbc", 7000)),
+                    "platelets": float(row.get("platelets", 250000)),
                     "fatigue": bool(int(row.get("fatigue", 0))),
+                    "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
                     "weight_loss": bool(int(row.get("weight_loss", 0))),
                     "seizures": bool(int(row.get("seizures", 0))),
                     "dev_delay": bool(int(row.get("dev_delay", 0))),
-                    "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
+                    "headache": bool(int(row.get("headache", 0))),
+                    "chills": bool(int(row.get("chills", 0))),
+                    "rigors": bool(int(row.get("rigors", 0))),
+                    "nausea": bool(int(row.get("nausea", 0))),
+                    "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+                    "cough": bool(int(row.get("cough", 0))),
+                    "bleeding": bool(int(row.get("bleeding", 0))),
+                    "prostration": bool(int(row.get("prostration", 0))),
+                    "oliguria": bool(int(row.get("oliguria", 0))),
+                    "anuria": bool(int(row.get("anuria", 0))),
+                    "conjunctival_suffusion": bool(int(row.get("conjunctival_suffusion", 0))),
+                    "muscle_tenderness": bool(int(row.get("muscle_tenderness", 0))),
                 }
                 condensed = condense_features(raw_dict)
                 sig = get_quantum_signature(raw_dict)
@@ -240,8 +242,9 @@ with col1:
             with open(SIGS_PATH, "w") as f:
                 json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
 
-            # Securely shred raw patient CSV
-            shred_data(DATA_PATH)
+            # Securely shred only uploaded CSVs (protect the real lepto dataset)
+            if st.session_state.get("_uploaded_file_name"):
+                shred_data(DATA_PATH)
 
             # Update session state
             st.session_state["signatures"] = signatures
@@ -356,30 +359,40 @@ st.subheader("Local Patient Diagnosis")
 
 
 def _randomize_patient():
-    """Generate random but realistic patient values into session state."""
-    st.session_state["rp_age"] = random.randint(0, 65)
+    """Generate random but realistic leptospirosis patient values into session state."""
+    st.session_state["rp_age"] = random.randint(5, 65)
     st.session_state["rp_sex"] = random.choice(["M", "F"])
     st.session_state["rp_care"] = random.choice([
         "community_health_post", "district_hospital", "regional_hospital", "clinic",
     ])
-    st.session_state["rp_height"] = float(random.randint(60, 195))
-    st.session_state["rp_weight"] = round(random.uniform(8.0, 120.0), 1)
     st.session_state["rp_hr"] = float(random.randint(55, 130))
     st.session_state["rp_bp_sys"] = float(random.randint(85, 180))
     st.session_state["rp_bp_dia"] = float(random.randint(40, 120))
-    st.session_state["rp_temp"] = round(random.uniform(35.5, 39.5), 1)
-    st.session_state["rp_spo2"] = round(random.uniform(88.0, 100.0), 1)
-    st.session_state["rp_fatigue"] = random.random() < 0.2
+    st.session_state["rp_wbc"] = float(random.randint(2000, 30000))
+    st.session_state["rp_platelets"] = float(random.randint(10000, 500000))
+    st.session_state["rp_fatigue"] = random.random() < 0.3
+    st.session_state["rp_muscle_weak"] = random.random() < 0.3
     st.session_state["rp_weight_loss"] = random.random() < 0.2
-    st.session_state["rp_seizures"] = random.random() < 0.1
-    st.session_state["rp_dev_delay"] = random.random() < 0.1
-    st.session_state["rp_muscle_weak"] = random.random() < 0.2
+    st.session_state["rp_seizures"] = random.random() < 0.05
+    st.session_state["rp_dev_delay"] = random.random() < 0.05
+    st.session_state["rp_headache"] = random.random() < 0.4
+    st.session_state["rp_chills"] = random.random() < 0.4
+    st.session_state["rp_rigors"] = random.random() < 0.3
+    st.session_state["rp_nausea"] = random.random() < 0.3
+    st.session_state["rp_diarrhoea"] = random.random() < 0.2
+    st.session_state["rp_cough"] = random.random() < 0.2
+    st.session_state["rp_bleeding"] = random.random() < 0.15
+    st.session_state["rp_prostration"] = random.random() < 0.2
+    st.session_state["rp_oliguria"] = random.random() < 0.15
+    st.session_state["rp_anuria"] = random.random() < 0.1
+    st.session_state["rp_conj_suff"] = random.random() < 0.2
+    st.session_state["rp_muscle_tend"] = random.random() < 0.3
 
 
 st.button("Randomize Patient", on_click=_randomize_patient, use_container_width=True)
 
 with st.form("new_patient_form"):
-    st.markdown("Enter patient data to get a quantum-powered diagnostic prediction.")
+    st.markdown("Enter patient data to get a quantum-powered leptospirosis diagnostic prediction.")
 
     # Demographics
     st.markdown("**Demographics**")
@@ -396,21 +409,8 @@ with st.form("new_patient_form"):
         inp_care = st.selectbox("Care Setting", care_opts,
                                 index=care_opts.index(st.session_state.get("rp_care", "community_health_post")))
 
-    # Body measurements
-    st.markdown("**Body Measurements**")
-    body1, body2, body3 = st.columns(3)
-    with body1:
-        inp_height = st.number_input("Height (cm)", min_value=40.0, max_value=220.0,
-                                     value=st.session_state.get("rp_height", 170.0), step=1.0)
-    with body2:
-        inp_weight = st.number_input("Weight (kg)", min_value=1.0, max_value=300.0,
-                                     value=st.session_state.get("rp_weight", 70.0), step=0.5)
-    with body3:
-        inp_bmi = round(inp_weight / (inp_height / 100) ** 2, 1)
-        st.metric("BMI (auto)", inp_bmi)
-
-    # Vitals (these feed the quantum encoder)
-    st.markdown("**Vitals**")
+    # Vitals & Labs
+    st.markdown("**Vitals & Labs**")
     v1, v2, v3, v4, v5 = st.columns(5)
     with v1:
         inp_hr = st.number_input("Heart Rate (bpm)", min_value=40.0, max_value=140.0,
@@ -422,25 +422,55 @@ with st.form("new_patient_form"):
         inp_bp_dia = st.number_input("Diastolic BP (mmHg)", min_value=30.0, max_value=130.0,
                                      value=st.session_state.get("rp_bp_dia", 80.0), step=1.0)
     with v4:
-        inp_temp = st.number_input("Temperature (C)", min_value=35.0, max_value=40.0,
-                                   value=st.session_state.get("rp_temp", 37.0), step=0.1)
+        inp_wbc = st.number_input("WBC (cells/uL)", min_value=500.0, max_value=35000.0,
+                                  value=st.session_state.get("rp_wbc", 7000.0), step=100.0)
     with v5:
-        inp_spo2 = st.number_input("SpO2 (%)", min_value=85.0, max_value=100.0,
-                                   value=st.session_state.get("rp_spo2", 97.0), step=0.5)
+        inp_platelets = st.number_input("Platelets (cells/uL)", min_value=5000.0, max_value=1000000.0,
+                                        value=st.session_state.get("rp_platelets", 250000.0), step=1000.0)
 
     # Clinical symptoms
     st.markdown("**Clinical Symptoms**")
-    sym1, sym2, sym3, sym4, sym5 = st.columns(5)
-    with sym1:
-        inp_fatigue = st.checkbox("Fatigue", value=st.session_state.get("rp_fatigue", False))
-    with sym2:
-        inp_weight_loss = st.checkbox("Weight Loss", value=st.session_state.get("rp_weight_loss", False))
-    with sym3:
+    sym_row1 = st.columns(5)
+    with sym_row1[0]:
+        inp_fatigue = st.checkbox("Jaundice/Fever", value=st.session_state.get("rp_fatigue", False))
+    with sym_row1[1]:
+        inp_muscle_weak = st.checkbox("Muscle Pain", value=st.session_state.get("rp_muscle_weak", False))
+    with sym_row1[2]:
+        inp_weight_loss = st.checkbox("Vomiting", value=st.session_state.get("rp_weight_loss", False))
+    with sym_row1[3]:
+        inp_headache = st.checkbox("Headache", value=st.session_state.get("rp_headache", False))
+    with sym_row1[4]:
+        inp_chills = st.checkbox("Chills", value=st.session_state.get("rp_chills", False))
+
+    sym_row2 = st.columns(5)
+    with sym_row2[0]:
+        inp_rigors = st.checkbox("Rigors", value=st.session_state.get("rp_rigors", False))
+    with sym_row2[1]:
+        inp_nausea = st.checkbox("Nausea", value=st.session_state.get("rp_nausea", False))
+    with sym_row2[2]:
+        inp_diarrhoea = st.checkbox("Diarrhoea", value=st.session_state.get("rp_diarrhoea", False))
+    with sym_row2[3]:
+        inp_cough = st.checkbox("Cough", value=st.session_state.get("rp_cough", False))
+    with sym_row2[4]:
+        inp_bleeding = st.checkbox("Bleeding", value=st.session_state.get("rp_bleeding", False))
+
+    sym_row3 = st.columns(5)
+    with sym_row3[0]:
+        inp_prostration = st.checkbox("Prostration", value=st.session_state.get("rp_prostration", False))
+    with sym_row3[1]:
+        inp_oliguria = st.checkbox("Oliguria", value=st.session_state.get("rp_oliguria", False))
+    with sym_row3[2]:
+        inp_anuria = st.checkbox("Anuria", value=st.session_state.get("rp_anuria", False))
+    with sym_row3[3]:
+        inp_conj_suff = st.checkbox("Conjunctival Suffusion", value=st.session_state.get("rp_conj_suff", False))
+    with sym_row3[4]:
+        inp_muscle_tend = st.checkbox("Muscle Tenderness", value=st.session_state.get("rp_muscle_tend", False))
+
+    sym_row4 = st.columns(5)
+    with sym_row4[0]:
         inp_seizures = st.checkbox("Seizures", value=st.session_state.get("rp_seizures", False))
-    with sym4:
-        inp_dev_delay = st.checkbox("Developmental Delay", value=st.session_state.get("rp_dev_delay", False))
-    with sym5:
-        inp_muscle_weak = st.checkbox("Muscle Weakness", value=st.session_state.get("rp_muscle_weak", False))
+    with sym_row4[1]:
+        inp_dev_delay = st.checkbox("Dev. Delay", value=st.session_state.get("rp_dev_delay", False))
 
     predict_clicked = st.form_submit_button("Predict Diagnosis", use_container_width=True, type="primary")
 
@@ -456,17 +486,27 @@ if predict_clicked:
             "heart_rate": inp_hr,
             "bp_systolic": inp_bp_sys,
             "bp_diastolic": inp_bp_dia,
-            "temperature": inp_temp,
-            "spo2": inp_spo2,
             "age": float(inp_age),
             "sex": inp_sex,
-            "height": inp_height,
-            "weight": inp_weight,
+            "wbc": inp_wbc,
+            "platelets": inp_platelets,
             "fatigue": inp_fatigue,
+            "muscle_weakness": inp_muscle_weak,
             "weight_loss": inp_weight_loss,
             "seizures": inp_seizures,
             "dev_delay": inp_dev_delay,
-            "muscle_weakness": inp_muscle_weak,
+            "headache": inp_headache,
+            "chills": inp_chills,
+            "rigors": inp_rigors,
+            "nausea": inp_nausea,
+            "diarrhoea": inp_diarrhoea,
+            "cough": inp_cough,
+            "bleeding": inp_bleeding,
+            "prostration": inp_prostration,
+            "oliguria": inp_oliguria,
+            "anuria": inp_anuria,
+            "conjunctival_suffusion": inp_conj_suff,
+            "muscle_tenderness": inp_muscle_tend,
         }
         new_sig = get_quantum_signature(raw_dict)
         new_X = np.abs(new_sig).reshape(1, -1)
@@ -500,15 +540,39 @@ if predict_clicked:
         # Collect symptom flags for display
         symptoms = []
         if inp_fatigue:
-            symptoms.append("Fatigue")
+            symptoms.append("Jaundice/Fever")
+        if inp_muscle_weak:
+            symptoms.append("Muscle Pain")
         if inp_weight_loss:
-            symptoms.append("Weight Loss")
+            symptoms.append("Vomiting")
+        if inp_headache:
+            symptoms.append("Headache")
+        if inp_chills:
+            symptoms.append("Chills")
+        if inp_rigors:
+            symptoms.append("Rigors")
+        if inp_nausea:
+            symptoms.append("Nausea")
+        if inp_diarrhoea:
+            symptoms.append("Diarrhoea")
+        if inp_cough:
+            symptoms.append("Cough")
+        if inp_bleeding:
+            symptoms.append("Bleeding")
+        if inp_prostration:
+            symptoms.append("Prostration")
+        if inp_oliguria:
+            symptoms.append("Oliguria")
+        if inp_anuria:
+            symptoms.append("Anuria")
+        if inp_conj_suff:
+            symptoms.append("Conj. Suffusion")
+        if inp_muscle_tend:
+            symptoms.append("Muscle Tenderness")
         if inp_seizures:
             symptoms.append("Seizures")
         if inp_dev_delay:
             symptoms.append("Dev. Delay")
-        if inp_muscle_weak:
-            symptoms.append("Muscle Weakness")
 
         # Display results
         res_left, res_gauge, res_right = st.columns([1, 2, 1])
@@ -516,10 +580,9 @@ if predict_clicked:
         with res_left:
             st.markdown("**Patient Profile**")
             st.markdown(f"- Age: **{inp_age}** yrs &nbsp; Sex: **{inp_sex}**")
-            st.markdown(f"- Height: **{inp_height}** cm &nbsp; Weight: **{inp_weight}** kg &nbsp; BMI: **{inp_bmi}**")
-            st.markdown("**Quantum-Encoded Vitals**")
+            st.markdown("**Quantum-Encoded Vitals & Labs**")
             st.markdown(f"- HR: **{inp_hr}** bpm &nbsp; BP: **{inp_bp_sys}/{inp_bp_dia}** mmHg")
-            st.markdown(f"- Temp: **{inp_temp}** C &nbsp; SpO2: **{inp_spo2}** %")
+            st.markdown(f"- WBC: **{inp_wbc:.0f}** /uL &nbsp; Platelets: **{inp_platelets:.0f}** /uL")
             if symptoms:
                 st.markdown(f"**Symptoms:** {', '.join(symptoms)}")
             else:

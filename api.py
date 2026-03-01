@@ -20,7 +20,6 @@ from sklearn.svm import SVC
 from quantum_engine import (
     get_quantum_signature,
     condense_features,
-    generate_mock_dataset,
     compute_kernel_from_params,
     compute_kernel_from_signatures,
     signature_from_dict,
@@ -36,6 +35,7 @@ from aggregator import FederatedAggregator
 
 DATA_DIR = "data"
 SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
+CSV_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 CLINICS_DIR = "clinics"
 
 
@@ -44,32 +44,23 @@ CLINICS_DIR = "clinics"
 _state: dict = {}
 
 
-def _bootstrap_from_mock():
-    """Generate mock data, encode into quantum signatures, and save."""
+def _bootstrap_from_csv():
+    """Read leptospirosis CSV, encode all patients into quantum signatures, and save."""
     import pandas as pd
-    csv_path = os.path.join(DATA_DIR, "patients.csv")
-    df = generate_mock_dataset(csv_path, n_patients=30)
+
+    if not os.path.exists(CSV_PATH):
+        raise FileNotFoundError(
+            f"Leptospirosis dataset not found at {CSV_PATH}. "
+            "Place patients_lepto_clean.csv in the data/ directory."
+        )
+
+    df = pd.read_csv(CSV_PATH)
 
     signatures = {}
     labels = {}
     params = {}
     for _, row in df.iterrows():
-        raw_dict = {
-            "heart_rate": float(row.get("heart_rate", 72)),
-            "bp_systolic": float(row.get("bp_systolic", 120)),
-            "bp_diastolic": float(row.get("bp_diastolic", 80)),
-            "temperature": float(row.get("temperature", 37)),
-            "spo2": float(row.get("spo2", 97)),
-            "age": float(row.get("age", 25)),
-            "sex": str(row.get("sex", "M")),
-            "height": float(row.get("height", 170)),
-            "weight": float(row.get("weight", 70)),
-            "fatigue": bool(int(row.get("fatigue", 0))),
-            "weight_loss": bool(int(row.get("weight_loss", 0))),
-            "seizures": bool(int(row.get("seizures", 0))),
-            "dev_delay": bool(int(row.get("dev_delay", 0))),
-            "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
-        }
+        raw_dict = _row_to_raw_dict(row)
         condensed = condense_features(raw_dict)
         sig = get_quantum_signature(raw_dict)
         pid = row["patient_id"]
@@ -81,18 +72,44 @@ def _bootstrap_from_mock():
     with open(SIGS_PATH, "w") as f:
         json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
 
-    # Clean up temp CSV
-    if os.path.exists(csv_path):
-        os.remove(csv_path)
-
     return signatures, labels, params
+
+
+def _row_to_raw_dict(row) -> dict:
+    """Convert a CSV row (pandas Series) to the raw_dict condense_features expects."""
+    return {
+        "heart_rate": float(row.get("heart_rate", 72)),
+        "bp_systolic": float(row.get("bp_systolic", 120)),
+        "bp_diastolic": float(row.get("bp_diastolic", 80)),
+        "age": float(row.get("age", 25)),
+        "sex": str(row.get("sex", "M")),
+        "wbc": float(row.get("wbc", 7000)),
+        "platelets": float(row.get("platelets", 250000)),
+        "fatigue": bool(int(row.get("fatigue", 0))),
+        "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
+        "weight_loss": bool(int(row.get("weight_loss", 0))),
+        "seizures": bool(int(row.get("seizures", 0))),
+        "dev_delay": bool(int(row.get("dev_delay", 0))),
+        "headache": bool(int(row.get("headache", 0))),
+        "chills": bool(int(row.get("chills", 0))),
+        "rigors": bool(int(row.get("rigors", 0))),
+        "nausea": bool(int(row.get("nausea", 0))),
+        "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+        "cough": bool(int(row.get("cough", 0))),
+        "bleeding": bool(int(row.get("bleeding", 0))),
+        "prostration": bool(int(row.get("prostration", 0))),
+        "oliguria": bool(int(row.get("oliguria", 0))),
+        "anuria": bool(int(row.get("anuria", 0))),
+        "conjunctival_suffusion": bool(int(row.get("conjunctival_suffusion", 0))),
+        "muscle_tenderness": bool(int(row.get("muscle_tenderness", 0))),
+    }
 
 
 def _load_state():
     """Load signatures, labels, params, and pre-train the SVM on startup."""
     if not os.path.exists(SIGS_PATH):
         # Bootstrap: generate mock data and encode
-        sigs, labs, par = _bootstrap_from_mock()
+        sigs, labs, par = _bootstrap_from_csv()
         _state["signatures"] = sigs
         _state["labels"] = labs
         _state["params"] = par
@@ -172,17 +189,27 @@ class PatientInput(BaseModel):
     heart_rate_bpm: float
     systolic_bp_mmHg: float
     diastolic_bp_mmHg: float = 80.0
-    temperature_c: float
-    oxygen_saturation_pct: float
     age_years: int = 25
     sex: Optional[str] = "M"
-    height_cm: float = 170.0
-    weight_kg: float = 70.0
+    wbc: float = 7000.0
+    platelets: float = 250000.0
     fatigue: bool = False
+    muscle_weakness: bool = False
     weight_loss: bool = False
     seizures: bool = False
     developmental_delay: bool = False
-    muscle_weakness: bool = False
+    headache: bool = False
+    chills: bool = False
+    rigors: bool = False
+    nausea: bool = False
+    diarrhoea: bool = False
+    cough: bool = False
+    bleeding: bool = False
+    prostration: bool = False
+    oliguria: bool = False
+    anuria: bool = False
+    conjunctival_suffusion: bool = False
+    muscle_tenderness: bool = False
 
 
 class PredictionResult(BaseModel):
@@ -206,17 +233,27 @@ def _patient_to_raw_dict(patient: PatientInput) -> dict:
         "heart_rate": patient.heart_rate_bpm,
         "bp_systolic": patient.systolic_bp_mmHg,
         "bp_diastolic": patient.diastolic_bp_mmHg,
-        "temperature": patient.temperature_c,
-        "spo2": patient.oxygen_saturation_pct,
         "age": float(patient.age_years),
         "sex": patient.sex or "M",
-        "height": patient.height_cm,
-        "weight": patient.weight_kg,
+        "wbc": patient.wbc,
+        "platelets": patient.platelets,
         "fatigue": patient.fatigue,
+        "muscle_weakness": patient.muscle_weakness,
         "weight_loss": patient.weight_loss,
         "seizures": patient.seizures,
         "dev_delay": patient.developmental_delay,
-        "muscle_weakness": patient.muscle_weakness,
+        "headache": patient.headache,
+        "chills": patient.chills,
+        "rigors": patient.rigors,
+        "nausea": patient.nausea,
+        "diarrhoea": patient.diarrhoea,
+        "cough": patient.cough,
+        "bleeding": patient.bleeding,
+        "prostration": patient.prostration,
+        "oliguria": patient.oliguria,
+        "anuria": patient.anuria,
+        "conjunctival_suffusion": patient.conjunctival_suffusion,
+        "muscle_tenderness": patient.muscle_tenderness,
     }
 
 
