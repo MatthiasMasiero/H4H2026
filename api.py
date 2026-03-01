@@ -8,12 +8,13 @@ Docs at:   http://localhost:8000/docs
 
 import os
 import json
+import random
 import threading
 import numpy as np
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import math
@@ -68,6 +69,7 @@ def _bootstrap_from_csv():
     signatures = {}
     labels = {}
     params = {}
+    raw_patients = {}
     for _, row in df.iterrows():
         raw_dict = _row_to_raw_dict(row)
         condensed = condense_features(raw_dict)
@@ -76,11 +78,13 @@ def _bootstrap_from_csv():
         signatures[pid] = signature_to_dict(sig)
         labels[pid] = int(row["diagnosis"])
         params[pid] = condensed.tolist()
+        raw_patients[pid] = _row_to_patient_record(row)
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SIGS_PATH, "w") as f:
         json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
 
+    _state["raw_patients"] = raw_patients
     return signatures, labels, params
 
 
@@ -114,6 +118,46 @@ def _row_to_raw_dict(row) -> dict:
     }
 
 
+ALL_SYMPTOMS = [
+    "fever", "muscle_pain", "jaundice", "vomiting", "confusion",
+    "headache", "chills", "rigors", "nausea", "diarrhea",
+    "cough", "bleeding", "prostration", "oliguria", "anuria",
+    "conjunctival_suffusion", "muscle_tenderness",
+]
+
+
+def _row_to_patient_record(row) -> dict:
+    """Convert a CSV row to a patient record dict for the /patients/sample endpoint."""
+    symptoms = [s for s in ALL_SYMPTOMS if bool(int(row.get(s, 0)))]
+    return {
+        "id": row["patient_id"],
+        "diagnosis": int(row["diagnosis"]),
+        "age": int(row.get("age", 25)),
+        "sex": str(row.get("sex", "M")),
+        "heart_rate": int(row.get("heart_rate", 72)),
+        "bp_systolic": int(row.get("bp_systolic", 120)),
+        "bp_diastolic": int(row.get("bp_diastolic", 80)),
+        "wbc": int(row.get("wbc", 7000)),
+        "platelets": int(row.get("platelets", 250000)),
+        "symptoms": symptoms,
+    }
+
+
+def _load_raw_patients_from_csv():
+    """Read the CSV and build the raw_patients dict (without quantum encoding)."""
+    import pandas as pd
+
+    if not os.path.exists(CSV_PATH):
+        return {}
+
+    df = pd.read_csv(CSV_PATH)
+    raw_patients = {}
+    for _, row in df.iterrows():
+        pid = row["patient_id"]
+        raw_patients[pid] = _row_to_patient_record(row)
+    return raw_patients
+
+
 def _load_state():
     """Load signatures, labels, params, and quantum SVM on startup."""
     if not os.path.exists(SIGS_PATH):
@@ -121,12 +165,14 @@ def _load_state():
         _state["signatures"] = sigs
         _state["labels"] = labs
         _state["params"] = par
+        # raw_patients already set by _bootstrap_from_csv
     else:
         with open(SIGS_PATH) as f:
             stored = json.load(f)
         _state["signatures"] = stored["signatures"]
         _state["labels"] = stored.get("labels", {})
         _state["params"] = stored.get("params", {})
+        _state["raw_patients"] = _load_raw_patients_from_csv()
 
     # Load or train 16-qubit quantum SVM in background (non-blocking)
     # Server starts immediately with fallback scoring; SVM becomes available once ready.
@@ -349,6 +395,29 @@ async def list_patients():
             {"patient_id": pid, "label": labs.get(pid)}
             for pid in sigs
         ],
+    }
+
+
+@app.get("/patients/sample")
+async def sample_patients(n: int = Query(default=20, ge=1, le=200)):
+    """Return n random patients (stratified: half positive, half negative) with full vitals."""
+    raw_patients = _state.get("raw_patients", {})
+    if not raw_patients:
+        raise HTTPException(status_code=503, detail="No patient data loaded.")
+
+    positives = [p for p in raw_patients.values() if p["diagnosis"] == 1]
+    negatives = [p for p in raw_patients.values() if p["diagnosis"] == 0]
+
+    half = n // 2
+    pos_sample = random.sample(positives, min(half, len(positives)))
+    neg_sample = random.sample(negatives, min(n - half, len(negatives)))
+
+    patients = pos_sample + neg_sample
+    random.shuffle(patients)
+
+    return {
+        "patients": patients,
+        "total_dataset": len(raw_patients),
     }
 
 
