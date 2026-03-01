@@ -509,6 +509,78 @@ def signature_from_dict(d) -> Statevector:
     return np.array(d["re"]) + 1j * np.array(d["im"])
 
 
+# ── Synthetic Bootstrap ────────────────────────────────────────────────────
+
+def bootstrap_svm_synthetic(n_healthy=10, n_sick=10, random_state=42):
+    """
+    Generate synthetic reference patients with clear class separation
+    and train a quantum kernel SVM.
+
+    The real leptospirosis CSV has AUC ~0.47 (near random), so training on it
+    produces collapsed predictions. Instead, we generate patients that span the
+    clinical spectrum so the SVM learns the clinical weight structure.
+
+    Args:
+        n_healthy: number of healthy reference patients.
+        n_sick: number of sick reference patients.
+        random_state: random seed for reproducibility.
+
+    Returns:
+        dict: trained model (same format as train_quantum_svm).
+    """
+    rng = np.random.RandomState(random_state)
+    pairs = []
+
+    symptom_keys = list(CLINICAL_WEIGHTS_16Q.keys())
+
+    # ── Healthy patients: normal vitals, few or no symptoms ──
+    for _ in range(n_healthy):
+        raw = {
+            "heart_rate": rng.uniform(60, 85),
+            "bp_systolic": rng.uniform(110, 135),
+            "bp_diastolic": rng.uniform(68, 85),
+            "wbc": rng.uniform(4000, 10000),
+            "platelets": rng.uniform(150000, 400000),
+            "age": rng.uniform(18, 55),
+            "sex": rng.choice(["M", "F"]),
+        }
+        # At most 1 mild symptom (headache or fever with low probability)
+        for sym in symptom_keys:
+            raw[sym] = False
+        if rng.random() < 0.3:
+            raw[rng.choice(["headache", "fever"])] = True
+        pairs.append((raw, 0))
+
+    # ── Sick patients: abnormal vitals, multiple weighted symptoms ──
+    for i in range(n_sick):
+        raw = {
+            "heart_rate": rng.uniform(95, 130),
+            "bp_systolic": rng.uniform(80, 105),
+            "bp_diastolic": rng.uniform(48, 65),
+            "wbc": rng.uniform(14000, 30000),
+            "platelets": rng.uniform(15000, 80000),
+            "age": rng.uniform(25, 70),
+            "sex": rng.choice(["M", "F"]),
+        }
+        # Activate symptoms based on severity tier
+        # More severe patients get more (and higher-weight) symptoms
+        severity = (i + 1) / n_sick  # 0.1 to 1.0
+        for sym in symptom_keys:
+            weight = CLINICAL_WEIGHTS_16Q[sym]
+            # Higher-weight symptoms more likely, scaled by severity
+            prob = weight * severity
+            raw[sym] = rng.random() < prob
+        # Ensure at least 2 symptoms are active for every sick patient
+        active = [s for s in symptom_keys if raw[s]]
+        while len(active) < 2:
+            sym = rng.choice(symptom_keys)
+            raw[sym] = True
+            active.append(sym)
+        pairs.append((raw, 1))
+
+    return train_quantum_svm(pairs)
+
+
 # ── CSV Bootstrap ─────────────────────────────────────────────────────────
 
 def bootstrap_svm_from_csv(csv_path, n_samples=75, random_state=42):

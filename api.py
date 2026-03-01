@@ -29,6 +29,7 @@ from quantum_engine import (
     FEATURE_COLS,
     NUM_QUBITS,
     bootstrap_svm_from_csv,
+    bootstrap_svm_synthetic,
     predict_quantum_svm,
     save_quantum_svm,
     load_quantum_svm,
@@ -133,8 +134,8 @@ def _load_state():
         try:
             if os.path.exists(SVM_MODEL_PATH):
                 _state["svm_model"] = load_quantum_svm(SVM_MODEL_PATH)
-            elif os.path.exists(CSV_PATH):
-                model = bootstrap_svm_from_csv(CSV_PATH, n_samples=SVM_N_SAMPLES)
+            else:
+                model = bootstrap_svm_synthetic()
                 os.makedirs(DATA_DIR, exist_ok=True)
                 save_quantum_svm(model, SVM_MODEL_PATH)
                 _state["svm_model"] = model

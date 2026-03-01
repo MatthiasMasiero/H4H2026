@@ -28,6 +28,7 @@ from quantum_engine import (
     save_quantum_svm,
     load_quantum_svm,
     bootstrap_svm_from_csv,
+    bootstrap_svm_synthetic,
 )
 
 
@@ -410,3 +411,19 @@ class TestBootstrapSVMFromCSV:
 
         prob = predict_quantum_svm(HEALTHY_PATIENT, model)
         assert 0.0 <= prob <= 1.0
+
+
+# ── bootstrap_svm_synthetic ──────────────────────────────────────────────
+
+class TestBootstrapSVMSynthetic:
+    def test_produces_differentiated_predictions(self):
+        """Synthetic training data should give the SVM clear class separation."""
+        model = bootstrap_svm_synthetic(n_healthy=10, n_sick=10)
+        assert model["n_train"] == 20
+
+        p_healthy = predict_quantum_svm(HEALTHY_PATIENT, model)
+        p_sick = predict_quantum_svm(SICK_PATIENT, model)
+        assert 0.0 <= p_healthy <= 1.0
+        assert 0.0 <= p_sick <= 1.0
+        assert p_sick > p_healthy, \
+            f"Sick ({p_sick}) should be higher than healthy ({p_healthy})"

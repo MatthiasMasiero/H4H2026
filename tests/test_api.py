@@ -5,10 +5,7 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 
-# Patch to use tiny dataset for fast tests
 import api
-api.SVM_N_SAMPLES = 6
-
 from api import app
 
 HEALTHY_INPUT = {
@@ -86,10 +83,9 @@ class TestPredictEndpoint:
         resp_s = client.post("/predict", json=SICK_INPUT)
         p_h = resp_h.json()["anomaly_probability"]
         p_s = resp_s.json()["anomaly_probability"]
-        # With real clinical data (near-zero class separation, AUC ~0.47),
-        # the SVM may not always rank sick > healthy. Assert both produce
-        # valid probabilities and are not identical (model is responsive).
+        # With synthetic training data, the SVM learns the clinical weight
+        # structure and should clearly rank sick > healthy.
         assert 0.0 <= p_h <= 1.0
         assert 0.0 <= p_s <= 1.0
-        assert p_s >= p_h or abs(p_s - p_h) < 0.15, \
-            f"Sick ({p_s}) should not be much lower than healthy ({p_h})"
+        assert p_s > p_h, \
+            f"Sick ({p_s}) should be higher than healthy ({p_h})"
