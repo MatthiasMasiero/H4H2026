@@ -46,6 +46,7 @@ SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
 CSV_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 CLINICS_DIR = "clinics"
 SVM_MODEL_PATH = os.path.join(DATA_DIR, "quantum_svm_model.npz")
+CLEAN_PATIENTS_PATH = os.path.join(DATA_DIR, "clean_patients.json")
 SVM_N_SAMPLES = 30
 
 
@@ -173,6 +174,11 @@ def _load_state():
         _state["labels"] = stored.get("labels", {})
         _state["params"] = stored.get("params", {})
         _state["raw_patients"] = _load_raw_patients_from_csv()
+
+    # Load curated clean patients for validation sampling
+    if os.path.exists(CLEAN_PATIENTS_PATH):
+        with open(CLEAN_PATIENTS_PATH) as f:
+            _state["clean_patients"] = json.load(f)
 
     # Load or train 16-qubit quantum SVM in background (non-blocking)
     # Server starts immediately with fallback scoring; SVM becomes available once ready.
@@ -400,13 +406,13 @@ async def list_patients():
 
 @app.get("/patients/sample")
 async def sample_patients(n: int = Query(default=20, ge=1, le=200)):
-    """Return n random patients (stratified: half positive, half negative) with full vitals."""
-    raw_patients = _state.get("raw_patients", {})
-    if not raw_patients:
+    """Return n random patients (stratified: half positive, half negative) from clean set."""
+    clean_patients = _state.get("clean_patients", [])
+    if not clean_patients:
         raise HTTPException(status_code=503, detail="No patient data loaded.")
 
-    positives = [p for p in raw_patients.values() if p["diagnosis"] == 1]
-    negatives = [p for p in raw_patients.values() if p["diagnosis"] == 0]
+    positives = [p for p in clean_patients if p["diagnosis"] == 1]
+    negatives = [p for p in clean_patients if p["diagnosis"] == 0]
 
     half = n // 2
     pos_sample = random.sample(positives, min(half, len(positives)))
@@ -417,7 +423,7 @@ async def sample_patients(n: int = Query(default=20, ge=1, le=200)):
 
     return {
         "patients": patients,
-        "total_dataset": len(raw_patients),
+        "total_dataset": len(clean_patients),
     }
 
 
