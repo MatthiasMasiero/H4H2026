@@ -1,0 +1,10 @@
+quantumDx-web/
+tests/
+docs/
+.claude/
+.vscode/
+__pycache__/
+*.pyc
+.pytest_cache/
+app.py
+main.py
