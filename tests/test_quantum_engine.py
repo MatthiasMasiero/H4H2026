@@ -25,6 +25,8 @@ from quantum_engine import (
     SELECTED_SYMPTOMS_16Q,
     train_quantum_svm,
     predict_quantum_svm,
+    save_quantum_svm,
+    load_quantum_svm,
 )
 
 
@@ -333,3 +335,33 @@ class TestPredictQuantumSVM:
         p_h = predict_quantum_svm(headache_only, trained_model)
         assert not np.isclose(p_j, p_h, atol=1e-4), \
             f"Jaundice ({p_j}) and headache ({p_h}) should produce different scores"
+
+
+# ── save/load quantum SVM ─────────────────────────────────────────────────
+
+class TestQuantumSVMPersistence:
+    @pytest.fixture
+    def trained_model(self):
+        patients = []
+        for i in range(3):
+            patients.append(({**HEALTHY_PATIENT, "heart_rate": 60 + i * 5}, 0))
+        for i in range(3):
+            patients.append(({**SICK_PATIENT, "heart_rate": 100 + i * 5}, 1))
+        return train_quantum_svm(patients)
+
+    def test_save_creates_file(self, trained_model, tmp_path):
+        """Saving model should create a file."""
+        path = str(tmp_path / "model.npz")
+        save_quantum_svm(trained_model, path)
+        assert os.path.exists(path)
+
+    def test_round_trip_prediction(self, trained_model, tmp_path):
+        """Loading a saved model should produce the same prediction."""
+        path = str(tmp_path / "model.npz")
+        save_quantum_svm(trained_model, path)
+        loaded = load_quantum_svm(path)
+
+        p_original = predict_quantum_svm(SICK_PATIENT, trained_model)
+        p_loaded = predict_quantum_svm(SICK_PATIENT, loaded)
+        assert np.isclose(p_original, p_loaded, atol=0.1), \
+            f"Original: {p_original}, Loaded: {p_loaded}"

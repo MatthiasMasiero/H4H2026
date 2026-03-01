@@ -447,6 +447,56 @@ def predict_quantum_svm(raw_dict, model):
     return float(proba[class_1_idx])
 
 
+# ── Save / Load Quantum SVM ────────────────────────────────────────────────
+
+def save_quantum_svm(model, path):
+    """Save quantum SVM training data to disk (params + labels only, numpy format)."""
+    np.savez_compressed(
+        path,
+        train_params=model["train_params"],
+        train_labels=model["train_labels"],
+    )
+
+
+def load_quantum_svm(path):
+    """
+    Load saved quantum SVM training data and retrain.
+    Recomputes statevectors from saved params and retrains the SVM
+    on the fidelity kernel matrix.
+    """
+    from sklearn.svm import SVC
+
+    data = np.load(path)
+    train_params = data["train_params"]
+    train_labels = data["train_labels"]
+    n = len(train_params)
+
+    # Recompute statevectors
+    statevectors = []
+    for row in train_params:
+        sv = get_quantum_signature_16q(row)
+        statevectors.append(sv)
+
+    # Recompute kernel matrix
+    K = np.empty((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            fid = np.abs(np.vdot(statevectors[i], statevectors[j])) ** 2
+            K[i, j] = K[j, i] = fid
+
+    # Retrain SVM (instant on precomputed kernel)
+    svc = SVC(kernel="precomputed", probability=True)
+    svc.fit(K, train_labels)
+
+    return {
+        "train_statevectors": statevectors,
+        "train_params": train_params,
+        "train_labels": train_labels,
+        "n_train": n,
+        "svc": svc,
+    }
+
+
 # ── Serialization Helpers (complex state vectors <-> JSON) ─────────────────
 
 def signature_to_dict(sig) -> dict:
