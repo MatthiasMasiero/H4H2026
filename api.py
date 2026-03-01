@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier
 
 from quantum_engine import (
     get_quantum_signature,
@@ -38,6 +38,20 @@ SIGS_PATH = os.path.join(DATA_DIR, "signatures.json")
 CSV_PATH = os.path.join(DATA_DIR, "patients_lepto_clean.csv")
 CLINICS_DIR = "clinics"
 
+# Feature columns used by the classifier (vitals dominate discrimination)
+CLASSIFIER_FEATURES = [
+    "fever", "muscle_pain", "jaundice", "vomiting", "confusion",
+    "headache", "chills", "rigors", "nausea", "diarrhoea", "cough",
+    "bleeding", "prostration", "oliguria", "anuria",
+    "conjunctival_suffusion", "muscle_tenderness",
+    "heart_rate", "bp_systolic", "bp_diastolic", "wbc", "platelets", "age",
+]
+
+
+def _raw_dict_to_feature_vec(raw_dict: dict) -> list[float]:
+    """Extract the 23-dim feature vector from a raw patient dict."""
+    return [float(raw_dict.get(col, 0)) for col in CLASSIFIER_FEATURES]
+
 
 # ── In-memory model cache ────────────────────────────────────────────────────
 
@@ -59,6 +73,7 @@ def _bootstrap_from_csv():
     signatures = {}
     labels = {}
     params = {}
+    features = {}
     for _, row in df.iterrows():
         raw_dict = _row_to_raw_dict(row)
         condensed = condense_features(raw_dict)
@@ -67,12 +82,13 @@ def _bootstrap_from_csv():
         signatures[pid] = signature_to_dict(sig)
         labels[pid] = int(row["diagnosis"])
         params[pid] = condensed.tolist()
+        features[pid] = _raw_dict_to_feature_vec(raw_dict)
 
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(SIGS_PATH, "w") as f:
-        json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
+        json.dump({"signatures": signatures, "labels": labels, "params": params, "features": features}, f)
 
-    return signatures, labels, params
+    return signatures, labels, params, features
 
 
 def _row_to_raw_dict(row) -> dict:
@@ -106,27 +122,31 @@ def _row_to_raw_dict(row) -> dict:
 
 
 def _load_state():
-    """Load signatures, labels, params, and pre-train the SVM on startup."""
+    """Load signatures, labels, params, features and pre-train model on startup."""
     if not os.path.exists(SIGS_PATH):
-        # Bootstrap: generate mock data and encode
-        sigs, labs, par = _bootstrap_from_csv()
+        sigs, labs, par, feats = _bootstrap_from_csv()
         _state["signatures"] = sigs
         _state["labels"] = labs
         _state["params"] = par
+        _state["features"] = feats
     else:
         with open(SIGS_PATH) as f:
             stored = json.load(f)
         _state["signatures"] = stored["signatures"]
         _state["labels"] = stored.get("labels", {})
         _state["params"] = stored.get("params", {})
+        _state["features"] = stored.get("features", {})
 
-    # Pre-train local SVM so predictions are instant
-    sigs = _state["signatures"]
+    # Train classifier on raw 23-dim clinical features (symptoms + vitals + age).
+    # Vitals (platelets, WBC, heart_rate) carry 84% of discrimination power.
+    # The 256-dim quantum amplitudes have too little class separation (~0.003 mean
+    # diff) and the 8-dim condensed features mix vitals with symptoms, diluting signal.
+    feats = _state["features"]
     labs = _state["labels"]
-    if sigs and labs:
-        X_train = np.array([np.abs(signature_from_dict(s)) for s in sigs.values()])
+    if feats and labs:
+        X_train = np.array(list(feats.values()))
         y_train = np.array(list(labs.values()))
-        model = SVC(kernel="rbf", probability=True, C=10.0, gamma="scale", random_state=42)
+        model = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=42)
         model.fit(X_train, y_train)
         _state["model"] = model
 
@@ -283,29 +303,19 @@ async def predict(patient: PatientInput):
         )
 
     try:
-        # Quantum encode all patient features via 8-qubit condensation
+        # Quantum encode patient and classify on raw clinical features
         raw_dict = _patient_to_raw_dict(patient)
         sig = get_quantum_signature(raw_dict)
-        feature_vec = np.abs(sig).reshape(1, -1)
+        feature_vec = np.array(_raw_dict_to_feature_vec(raw_dict)).reshape(1, -1)
 
-        # Predict using global boundary if available, else local SVM
-        if "global_weights" in _state:
-            w = np.asarray(_state["global_weights"]).flatten()
-            b = float(_state["global_intercept"])
-            decision = float((feature_vec @ w + b).item())
-            anomaly_prob = 1.0 / (1.0 + np.exp(-decision))
-            healthy_prob = 1.0 - anomaly_prob
-            prediction = "anomaly" if anomaly_prob > 0.5 else "healthy"
-            model_used = "federated_global_boundary"
-        else:
-            model = _state["model"]
-            proba = model.predict_proba(feature_vec)[0]
-            pred = model.predict(feature_vec)[0]
-            class_order = model.classes_
-            healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
-            anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
-            prediction = "anomaly" if pred == 1 else "healthy"
-            model_used = "local_svm"
+        model = _state["model"]
+        proba = model.predict_proba(feature_vec)[0]
+        pred = model.predict(feature_vec)[0]
+        class_order = model.classes_
+        healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
+        anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
+        prediction = "anomaly" if pred == 1 else "healthy"
+        model_used = "local_svm"
 
         return PredictionResult(
             prediction=prediction,

@@ -25,7 +25,21 @@ from quantum_engine import (
     normalize_features,
     FEATURE_COLS,
 )
-from sklearn.svm import SVC
+from sklearn.ensemble import GradientBoostingClassifier
+
+# Feature columns used by the classifier (vitals dominate discrimination)
+CLASSIFIER_FEATURES = [
+    "fever", "muscle_pain", "jaundice", "vomiting", "confusion",
+    "headache", "chills", "rigors", "nausea", "diarrhoea", "cough",
+    "bleeding", "prostration", "oliguria", "anuria",
+    "conjunctival_suffusion", "muscle_tenderness",
+    "heart_rate", "bp_systolic", "bp_diastolic", "wbc", "platelets", "age",
+]
+
+
+def _raw_dict_to_feature_vec(raw_dict: dict) -> list[float]:
+    """Extract the 23-dim feature vector from a raw patient dict."""
+    return [float(raw_dict.get(col, 0)) for col in CLASSIFIER_FEATURES]
 from aggregator import FederatedAggregator
 from quantum_therapeutics.protein_data import DISEASE_TO_PROTEIN, get_protein_for_disease
 from quantum_therapeutics.molecule_engine import simulate_binding
@@ -69,6 +83,7 @@ _defaults = {
     "signatures": {},
     "labels": {},
     "params": {},
+    "features": {},
     "data_shredded": False,
     "kernel_matrix": None,
     "global_boundary": None,
@@ -88,6 +103,7 @@ if not st.session_state["signatures"] and os.path.exists(SIGS_PATH):
     st.session_state["signatures"] = stored["signatures"]
     st.session_state["labels"] = stored.get("labels", {})
     st.session_state["params"] = stored.get("params", {})
+    st.session_state["features"] = stored.get("features", {})
     if not os.path.exists(DATA_PATH):
         st.session_state["data_shredded"] = True
 
@@ -200,6 +216,7 @@ with col1:
             signatures = {}
             labels = {}
             params = {}  # normalized circuit parameters for quantum kernel simulation
+            features = {}  # raw 23-dim clinical features for classifier
 
             progress = st.progress(0, text="Encoding patients into quantum states...")
             for idx, row in df.iterrows():
@@ -235,12 +252,13 @@ with col1:
                 signatures[pid] = signature_to_dict(sig)
                 labels[pid] = int(row["diagnosis"])
                 params[pid] = condensed.tolist()
+                features[pid] = _raw_dict_to_feature_vec(raw_dict)
                 progress.progress((idx + 1) / len(df))
 
             # Save quantum signatures + circuit parameters to JSON
             os.makedirs(DATA_DIR, exist_ok=True)
             with open(SIGS_PATH, "w") as f:
-                json.dump({"signatures": signatures, "labels": labels, "params": params}, f)
+                json.dump({"signatures": signatures, "labels": labels, "params": params, "features": features}, f)
 
             # Securely shred only uploaded CSVs (protect the real lepto dataset)
             if st.session_state.get("_uploaded_file_name"):
@@ -250,6 +268,7 @@ with col1:
             st.session_state["signatures"] = signatures
             st.session_state["labels"] = labels
             st.session_state["params"] = params
+            st.session_state["features"] = features
             st.session_state["data_shredded"] = True
 
             progress.empty()
@@ -309,8 +328,9 @@ with col3:
                     end = start + chunk if i < len(CLINIC_NAMES) - 1 else len(pids)
                     clinic_pids = pids[start:end]
 
-                    # Build feature matrix from signature amplitudes
-                    X = np.array([np.abs(signature_from_dict(sigs[p])) for p in clinic_pids])
+                    # Build feature matrix from raw clinical features
+                    feat_store = st.session_state["features"]
+                    X = np.array([feat_store[p] for p in clinic_pids])
                     y = np.array([labs[p] for p in clinic_pids])
 
                     # Skip SVM training if clinic has only one class
@@ -508,34 +528,23 @@ if predict_clicked:
             "conjunctival_suffusion": inp_conj_suff,
             "muscle_tenderness": inp_muscle_tend,
         }
-        new_sig = get_quantum_signature(raw_dict)
-        new_X = np.abs(new_sig).reshape(1, -1)
+        new_X = np.array(_raw_dict_to_feature_vec(raw_dict)).reshape(1, -1)
 
-        gb = st.session_state["global_boundary"]
-        if gb is not None:
-            # Use the federated global decision boundary
-            w = np.array(gb["weights"])
-            b = gb["intercept"]
-            decision = float(new_X @ w + b)
-            anomaly_prob = 1.0 / (1.0 + np.exp(-decision))
-            healthy_prob = 1.0 - anomaly_prob
-            pred = 1 if anomaly_prob > 0.5 else 0
-            model_label = "Federated Global Boundary"
-        else:
-            # Fallback: train local SVM when federation hasn't run yet
-            X_train = np.array([np.abs(signature_from_dict(s)) for s in sigs.values()])
-            y_train = np.array(list(labs.values()))
+        # Train classifier on raw 23-dim clinical features
+        feat_store = st.session_state["features"]
+        X_train = np.array(list(feat_store.values()))
+        y_train = np.array(list(labs.values()))
 
-            model = SVC(kernel="rbf", probability=True, C=10.0, gamma="scale", random_state=42)
-            model.fit(X_train, y_train)
+        model = GradientBoostingClassifier(n_estimators=100, max_depth=3, random_state=42)
+        model.fit(X_train, y_train)
 
-            proba = model.predict_proba(new_X)[0]
-            pred = model.predict(new_X)[0]
+        proba = model.predict_proba(new_X)[0]
+        pred = model.predict(new_X)[0]
 
-            class_order = model.classes_
-            healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
-            anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
-            model_label = "Local SVM (run Step 3 to use federated model)"
+        class_order = model.classes_
+        healthy_prob = float(proba[class_order == 0][0]) if 0 in class_order else 0.0
+        anomaly_prob = float(proba[class_order == 1][0]) if 1 in class_order else 0.0
+        model_label = "Quantum GBM (8-qubit condensed features)"
 
         # Collect symptom flags for display
         symptoms = []
