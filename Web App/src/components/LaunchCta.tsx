@@ -7,30 +7,30 @@ import Reveal from "./Reveal";
 const API_URL = import.meta.env.VITE_API_URL || "https://h4h2026-production.up.railway.app";
 
 interface PatientData {
-    age_years: number;
-    sex: string;
-    heart_rate_bpm: number;
-    systolic_bp_mmHg: number;
-    diastolic_bp_mmHg: number;
-    wbc: number;
-    platelets: number;
-    fever: boolean;
-    muscle_pain: boolean;
-    jaundice: boolean;
-    vomiting: boolean;
-    confusion: boolean;
-    headache: boolean;
-    chills: boolean;
-    rigors: boolean;
-    nausea: boolean;
-    diarrhea: boolean;
-    cough: boolean;
-    bleeding: boolean;
-    prostration: boolean;
-    oliguria: boolean;
-    anuria: boolean;
-    conjunctival_suffusion: boolean;
-    muscle_tenderness: boolean;
+    age_years: number | "";
+    sex: string | "";
+    heart_rate_bpm: number | "";
+    systolic_bp_mmHg: number | "";
+    diastolic_bp_mmHg: number | "";
+    wbc: number | "";
+    platelets: number | "";
+    fever: boolean | "";
+    muscle_pain: boolean | "";
+    jaundice: boolean | "";
+    vomiting: boolean | "";
+    confusion: boolean | "";
+    headache: boolean | "";
+    chills: boolean | "";
+    rigors: boolean | "";
+    nausea: boolean | "";
+    diarrhea: boolean | "";
+    cough: boolean | "";
+    bleeding: boolean | "";
+    prostration: boolean | "";
+    oliguria: boolean | "";
+    anuria: boolean | "";
+    conjunctival_suffusion: boolean | "";
+    muscle_tenderness: boolean | "";
 }
 
 interface PredictionResult {
@@ -70,7 +70,7 @@ const HEALTHY_PRESET: PatientData = {
 
 const SICK_PRESET: PatientData = {
     age_years: 38,
-    sex: "male",
+    sex: 'male',
     heart_rate_bpm: 105,
     systolic_bp_mmHg: 95,
     diastolic_bp_mmHg: 58,
@@ -179,8 +179,33 @@ function PatientForm() {
         }));
     };
 
+    const isFormValid = () => {
+        const requiredNumericFields = [
+            "age_years",
+            "heart_rate_bpm",
+            "systolic_bp_mmHg",
+            "diastolic_bp_mmHg",
+            "wbc",
+            "platelets",
+        ];
+
+        for (const field of requiredNumericFields) {
+            if (form[field as keyof PatientData] === "") {
+                return false;
+            }
+        }
+
+        if (!form.sex) return false;
+
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isFormValid()) {
+            setError("Please complete all required fields before submitting.");
+            return;
+        }
         setLoading(true);
         setError(null);
         setResult(null);
@@ -376,12 +401,12 @@ function PatientForm() {
                         </div>
 
                         {/* Boolean checkboxes with labels */}
-                         <label
-                                htmlFor="sex"
-                                style={{ marginBottom: 4, fontFamily: "var(--mono)", fontSize: 14, fontWeight: "bold" }}
-                            >
-                                Symptoms
-                            </label>
+                        <label
+                            htmlFor="sex"
+                            style={{ marginBottom: 4, fontFamily: "var(--mono)", fontSize: 14, fontWeight: "bold" }}
+                        >
+                            Symptoms
+                        </label>
                         {([
                             { name: "fever", label: "Fever" },
                             { name: "muscle_pain", label: "Muscle Pain" },
