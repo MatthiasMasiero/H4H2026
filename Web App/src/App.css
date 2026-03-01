@@ -195,4 +195,8 @@ a {
   .process-title {
     min-width: auto !important;
   }
+
+  .heatmap-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
