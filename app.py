@@ -16,6 +16,7 @@ import streamlit as st
 from quantum_engine import (
     generate_mock_dataset,
     get_quantum_signature,
+    condense_features,
     compute_kernel,
     compute_kernel_from_params,
     compute_kernel_from_signatures,
@@ -45,8 +46,12 @@ CLINIC_NAMES = ["Clinic_A", "Clinic_B", "Clinic_C"]
 COLUMN_ALIASES = {
     "heart_rate_bpm": "heart_rate",
     "systolic_bp_mmHg": "bp_systolic",
+    "diastolic_bp_mmHg": "bp_diastolic",
     "temperature_c": "temperature",
     "oxygen_saturation_pct": "spo2",
+    "age_years": "age",
+    "height_cm": "height",
+    "weight_kg": "weight",
     "has_target_disease": "diagnosis",
 }
 
@@ -118,7 +123,7 @@ with st.sidebar:
     st.subheader("Architecture")
     st.markdown(
         """
-        1. **Encode** — ZZFeatureMap (4 qubits)
+        1. **Encode** — ZZFeatureMap (8 qubits)
         2. **Extract** — Quantum state vectors
         3. **Shred** — 3-pass secure delete
         4. **Diagnose** — Fidelity kernel matrix
@@ -155,7 +160,12 @@ if not os.path.exists(DATA_PATH) and not st.session_state["data_shredded"]:
 
 # ── CSV Upload ─────────────────────────────────────────────────────────────
 
-REQUIRED_COLS = {"patient_id", "heart_rate", "bp_systolic", "temperature", "spo2", "diagnosis"}
+REQUIRED_COLS = {
+    "patient_id", "heart_rate", "bp_systolic", "bp_diastolic",
+    "temperature", "spo2", "age", "sex", "height", "weight",
+    "fatigue", "weight_loss", "seizures", "dev_delay", "muscle_weakness",
+    "diagnosis",
+}
 
 uploaded_file = st.file_uploader("Upload a custom patient CSV", type=["csv"])
 if uploaded_file is not None:
@@ -201,12 +211,28 @@ with col1:
 
             progress = st.progress(0, text="Encoding patients into quantum states...")
             for idx, row in df.iterrows():
-                features = row[FEATURE_COLS].values.astype(float)
-                sig = get_quantum_signature(features)
+                raw_dict = {
+                    "heart_rate": float(row.get("heart_rate", 72)),
+                    "bp_systolic": float(row.get("bp_systolic", 120)),
+                    "bp_diastolic": float(row.get("bp_diastolic", 80)),
+                    "temperature": float(row.get("temperature", 37)),
+                    "spo2": float(row.get("spo2", 97)),
+                    "age": float(row.get("age", 25)),
+                    "sex": str(row.get("sex", "M")),
+                    "height": float(row.get("height", 170)),
+                    "weight": float(row.get("weight", 70)),
+                    "fatigue": bool(int(row.get("fatigue", 0))),
+                    "weight_loss": bool(int(row.get("weight_loss", 0))),
+                    "seizures": bool(int(row.get("seizures", 0))),
+                    "dev_delay": bool(int(row.get("dev_delay", 0))),
+                    "muscle_weakness": bool(int(row.get("muscle_weakness", 0))),
+                }
+                condensed = condense_features(raw_dict)
+                sig = get_quantum_signature(raw_dict)
                 pid = row["patient_id"]
                 signatures[pid] = signature_to_dict(sig)
                 labels[pid] = int(row["diagnosis"])
-                params[pid] = normalize_features(features).tolist()
+                params[pid] = condensed.tolist()
                 progress.progress((idx + 1) / len(df))
 
             # Save quantum signatures + circuit parameters to JSON
@@ -384,7 +410,7 @@ with st.form("new_patient_form"):
         st.metric("BMI (auto)", inp_bmi)
 
     # Vitals (these feed the quantum encoder)
-    st.markdown("**Vitals** *(used for quantum encoding)*")
+    st.markdown("**Vitals**")
     v1, v2, v3, v4, v5 = st.columns(5)
     with v1:
         inp_hr = st.number_input("Heart Rate (bpm)", min_value=40.0, max_value=140.0,
@@ -425,8 +451,24 @@ if predict_clicked:
     if not sigs or not labs:
         st.error("No training data available. Process patients first (Step 1).")
     else:
-        # Encode the new patient into a quantum signature (4 vitals)
-        new_sig = get_quantum_signature([inp_hr, inp_bp_sys, inp_temp, inp_spo2])
+        # Encode the new patient into a quantum signature (all features → 8 qubits)
+        raw_dict = {
+            "heart_rate": inp_hr,
+            "bp_systolic": inp_bp_sys,
+            "bp_diastolic": inp_bp_dia,
+            "temperature": inp_temp,
+            "spo2": inp_spo2,
+            "age": float(inp_age),
+            "sex": inp_sex,
+            "height": inp_height,
+            "weight": inp_weight,
+            "fatigue": inp_fatigue,
+            "weight_loss": inp_weight_loss,
+            "seizures": inp_seizures,
+            "dev_delay": inp_dev_delay,
+            "muscle_weakness": inp_muscle_weak,
+        }
+        new_sig = get_quantum_signature(raw_dict)
         new_X = np.abs(new_sig).reshape(1, -1)
 
         gb = st.session_state["global_boundary"]

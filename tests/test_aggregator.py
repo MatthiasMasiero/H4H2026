@@ -59,10 +59,10 @@ class TestTrainLocalSvm:
     def test_output_shape(self):
         """Coef should match feature dimension; intercept should be scalar."""
         rng = np.random.default_rng(0)
-        X = rng.random((20, 16))
+        X = rng.random((20, 256))
         y = np.array([0] * 10 + [1] * 10)
         coef, intercept = FederatedAggregator.train_local_svm(X, y)
-        assert coef.shape == (16,)
+        assert coef.shape == (256,)
         assert isinstance(intercept, (float, np.floating))
 
     def test_separable_data(self):

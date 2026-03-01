@@ -19,12 +19,14 @@ from sklearn.svm import SVC
 
 from quantum_engine import (
     get_quantum_signature,
+    condense_features,
     compute_kernel_from_params,
     compute_kernel_from_signatures,
     signature_from_dict,
     signature_to_dict,
     normalize_features,
     FEATURE_COLS,
+    NUM_QUBITS,
 )
 from aggregator import FederatedAggregator
 
@@ -121,18 +123,18 @@ app.add_middleware(
 class PatientInput(BaseModel):
     heart_rate_bpm: float
     systolic_bp_mmHg: float
-    diastolic_bp_mmHg: Optional[float] = None
+    diastolic_bp_mmHg: float = 80.0
     temperature_c: float
     oxygen_saturation_pct: float
-    age_years: Optional[int] = None
-    sex: Optional[str] = None
-    height_cm: Optional[float] = None
-    weight_kg: Optional[float] = None
-    fatigue: Optional[bool] = False
-    weight_loss: Optional[bool] = False
-    seizures: Optional[bool] = False
-    developmental_delay: Optional[bool] = False
-    muscle_weakness: Optional[bool] = False
+    age_years: int = 25
+    sex: Optional[str] = "M"
+    height_cm: float = 170.0
+    weight_kg: float = 70.0
+    fatigue: bool = False
+    weight_loss: bool = False
+    seizures: bool = False
+    developmental_delay: bool = False
+    muscle_weakness: bool = False
 
 
 class PredictionResult(BaseModel):
@@ -148,6 +150,26 @@ class HealthResponse(BaseModel):
     patients_loaded: int
     model_ready: bool
     global_boundary_available: bool
+
+
+def _patient_to_raw_dict(patient: PatientInput) -> dict:
+    """Map PatientInput fields to the dict keys condense_features expects."""
+    return {
+        "heart_rate": patient.heart_rate_bpm,
+        "bp_systolic": patient.systolic_bp_mmHg,
+        "bp_diastolic": patient.diastolic_bp_mmHg,
+        "temperature": patient.temperature_c,
+        "spo2": patient.oxygen_saturation_pct,
+        "age": float(patient.age_years),
+        "sex": patient.sex or "M",
+        "height": patient.height_cm,
+        "weight": patient.weight_kg,
+        "fatigue": patient.fatigue,
+        "weight_loss": patient.weight_loss,
+        "seizures": patient.seizures,
+        "dev_delay": patient.developmental_delay,
+        "muscle_weakness": patient.muscle_weakness,
+    }
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -176,14 +198,9 @@ async def predict(patient: PatientInput):
         )
 
     try:
-        # Quantum encode the 4 vitals
-        vitals = [
-            patient.heart_rate_bpm,
-            patient.systolic_bp_mmHg,
-            patient.temperature_c,
-            patient.oxygen_saturation_pct,
-        ]
-        sig = get_quantum_signature(vitals)
+        # Quantum encode all patient features via 8-qubit condensation
+        raw_dict = _patient_to_raw_dict(patient)
+        sig = get_quantum_signature(raw_dict)
         feature_vec = np.abs(sig).reshape(1, -1)
 
         # Predict using global boundary if available, else local SVM
@@ -219,20 +236,16 @@ async def predict(patient: PatientInput):
 @app.post("/encode")
 async def encode_vitals(patient: PatientInput):
     """
-    Return the raw quantum signature for a patient (16-dim complex state vector).
+    Return the raw quantum signature for a patient (256-dim complex state vector).
     Useful for debugging or custom downstream processing.
     """
-    vitals = [
-        patient.heart_rate_bpm,
-        patient.systolic_bp_mmHg,
-        patient.temperature_c,
-        patient.oxygen_saturation_pct,
-    ]
-    sig = get_quantum_signature(vitals)
+    raw_dict = _patient_to_raw_dict(patient)
+    condensed = condense_features(raw_dict)
+    sig = get_quantum_signature(raw_dict)
     return {
         "signature": signature_to_dict(sig),
-        "normalized_params": normalize_features(vitals).tolist(),
-        "num_qubits": 4,
+        "condensed_params": condensed.tolist(),
+        "num_qubits": NUM_QUBITS,
         "state_vector_dim": len(sig),
     }
 

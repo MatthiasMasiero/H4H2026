@@ -455,7 +455,7 @@ function PatientForm() {
                                 }}>
                                     {[
                                         { label: "Model", value: result.model_used === "federated_global_boundary" ? "Federated" : "Local SVM" },
-                                        { label: "Qubits", value: "4" },
+                                        { label: "Qubits", value: "8" },
                                         { label: "State Dim", value: String(result.quantum_signature_dim) },
                                     ].map((item) => (
                                         <div
