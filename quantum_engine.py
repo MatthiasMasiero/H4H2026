@@ -507,3 +507,63 @@ def signature_to_dict(sig) -> dict:
 def signature_from_dict(d) -> Statevector:
     """Reconstruct a complex state vector from its dict representation."""
     return np.array(d["re"]) + 1j * np.array(d["im"])
+
+
+# ── CSV Bootstrap ─────────────────────────────────────────────────────────
+
+def bootstrap_svm_from_csv(csv_path, n_samples=75, random_state=42):
+    """
+    Load leptospirosis CSV, take a stratified sample, train quantum SVM.
+
+    Args:
+        csv_path: path to patients_lepto_clean.csv
+        n_samples: number of patients to sample (stratified by diagnosis)
+        random_state: random seed for reproducibility
+
+    Returns:
+        dict: trained model (same format as train_quantum_svm)
+    """
+    import pandas as pd
+
+    df = pd.read_csv(csv_path)
+
+    if len(df) > n_samples:
+        from sklearn.model_selection import train_test_split
+        df_sample, _ = train_test_split(
+            df, train_size=n_samples, stratify=df["diagnosis"],
+            random_state=random_state,
+        )
+    else:
+        df_sample = df
+
+    pairs = []
+    for _, row in df_sample.iterrows():
+        raw_dict = {
+            "heart_rate": float(row.get("heart_rate", 72)),
+            "bp_systolic": float(row.get("bp_systolic", 120)),
+            "bp_diastolic": float(row.get("bp_diastolic", 80)),
+            "age": float(row.get("age", 25)),
+            "sex": str(row.get("sex", "M")),
+            "wbc": float(row.get("wbc", 7000)),
+            "platelets": float(row.get("platelets", 250000)),
+            "fever": bool(int(row.get("fever", 0))),
+            "muscle_pain": bool(int(row.get("muscle_pain", 0))),
+            "jaundice": bool(int(row.get("jaundice", 0))),
+            "vomiting": bool(int(row.get("vomiting", 0))),
+            "confusion": bool(int(row.get("confusion", 0))),
+            "headache": bool(int(row.get("headache", 0))),
+            "chills": bool(int(row.get("chills", 0))),
+            "rigors": bool(int(row.get("rigors", 0))),
+            "nausea": bool(int(row.get("nausea", 0))),
+            "diarrhoea": bool(int(row.get("diarrhoea", 0))),
+            "cough": bool(int(row.get("cough", 0))),
+            "bleeding": bool(int(row.get("bleeding", 0))),
+            "prostration": bool(int(row.get("prostration", 0))),
+            "oliguria": bool(int(row.get("oliguria", 0))),
+            "anuria": bool(int(row.get("anuria", 0))),
+            "conjunctival_suffusion": bool(int(row.get("conjunctival_suffusion", 0))),
+            "muscle_tenderness": bool(int(row.get("muscle_tenderness", 0))),
+        }
+        pairs.append((raw_dict, int(row["diagnosis"])))
+
+    return train_quantum_svm(pairs)

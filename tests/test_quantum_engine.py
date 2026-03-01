@@ -27,6 +27,7 @@ from quantum_engine import (
     predict_quantum_svm,
     save_quantum_svm,
     load_quantum_svm,
+    bootstrap_svm_from_csv,
 )
 
 
@@ -365,3 +366,47 @@ class TestQuantumSVMPersistence:
         p_loaded = predict_quantum_svm(SICK_PATIENT, loaded)
         assert np.isclose(p_original, p_loaded, atol=0.1), \
             f"Original: {p_original}, Loaded: {p_loaded}"
+
+
+# ── bootstrap_svm_from_csv ────────────────────────────────────────────────
+
+class TestBootstrapSVMFromCSV:
+    def test_produces_model(self, tmp_path):
+        """Should load CSV, sample, train, and return a model."""
+        import pandas as pd
+        rows = []
+        for i in range(5):
+            rows.append({
+                "patient_id": f"H_{i}", "age": 25 + i, "sex": "M",
+                "heart_rate": 65 + i * 3, "bp_systolic": 115 + i * 2,
+                "bp_diastolic": 75 + i, "wbc": 6000 + i * 500,
+                "platelets": 200000 + i * 20000,
+                "fever": 0, "muscle_pain": 0, "jaundice": 0, "vomiting": 0,
+                "confusion": 0, "headache": 0, "chills": 0, "rigors": 0,
+                "nausea": 0, "diarrhoea": 0, "cough": 0, "bleeding": 0,
+                "prostration": 0, "oliguria": 0, "anuria": 0,
+                "conjunctival_suffusion": 0, "muscle_tenderness": 0,
+                "diagnosis": 0,
+            })
+        for i in range(5):
+            rows.append({
+                "patient_id": f"S_{i}", "age": 40 + i, "sex": "F",
+                "heart_rate": 100 + i * 3, "bp_systolic": 90 + i * 2,
+                "bp_diastolic": 55 + i, "wbc": 15000 + i * 1000,
+                "platelets": 50000 + i * 5000,
+                "fever": 1, "muscle_pain": 1, "jaundice": 1, "vomiting": 1,
+                "confusion": 0, "headache": 1, "chills": 1, "rigors": 1,
+                "nausea": 1, "diarrhoea": 0, "cough": 0, "bleeding": 1,
+                "prostration": 0, "oliguria": 1, "anuria": 0,
+                "conjunctival_suffusion": 1, "muscle_tenderness": 1,
+                "diagnosis": 1,
+            })
+        csv_path = str(tmp_path / "test_patients.csv")
+        pd.DataFrame(rows).to_csv(csv_path, index=False)
+
+        model = bootstrap_svm_from_csv(csv_path, n_samples=10)
+        assert model["n_train"] == 10
+        assert len(model["train_statevectors"]) == 10
+
+        prob = predict_quantum_svm(HEALTHY_PATIENT, model)
+        assert 0.0 <= prob <= 1.0
